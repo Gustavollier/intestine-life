@@ -89,7 +89,7 @@ export default function Dashboard() {
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Calendar */}
-          <Card className="flex-1 p-6">
+          <Card className="flex-1 p-6 border border-primary/20">
             <div className="flex items-center justify-between mb-4">
               <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-muted rounded">
                 <ChevronLeft className="w-5 h-5" />
@@ -143,7 +143,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Notes panel - always visible */}
-          <Card className="w-full lg:w-96 p-5">
+          <Card className="w-full lg:w-96 p-5 border border-primary/20">
             {selectedDate ? (
               <>
                 <div className="flex items-start justify-between mb-1">
