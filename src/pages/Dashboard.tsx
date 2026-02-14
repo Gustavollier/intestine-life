@@ -88,59 +88,65 @@ export default function Dashboard() {
         <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Calendar */}
-          <Card className="flex-1 p-6 border border-primary/20 rounded-3xl shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-muted rounded">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h3 className="font-semibold text-foreground capitalize">
-                {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
-              </h3>
-              <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-muted rounded">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+          {/* Calendar column */}
+          <div className="flex-1 flex flex-col gap-6">
+            <Card className="p-6 border border-primary/20 rounded-3xl shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-muted rounded">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <h3 className="font-semibold text-foreground capitalize">
+                  {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+                </h3>
+                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-muted rounded">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
 
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {weekDays.map((d) => (
-                <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">{d}</div>
-              ))}
-            </div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {weekDays.map((d) => (
+                  <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">{d}</div>
+                ))}
+              </div>
 
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: days.startPadding }).map((_, i) => (
-                <div key={`pad-${i}`} />
-              ))}
-              {days.allDays.map((day) => {
-                const dateStr = format(day, "yyyy-MM-dd");
-                const hasNotes = datesWithNotes.includes(dateStr);
-                const isToday = dateStr === today;
-                const isSelected = dateStr === selectedDate;
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: days.startPadding }).map((_, i) => (
+                  <div key={`pad-${i}`} />
+                ))}
+                {days.allDays.map((day) => {
+                  const dateStr = format(day, "yyyy-MM-dd");
+                  const hasNotes = datesWithNotes.includes(dateStr);
+                  const isToday = dateStr === today;
+                  const isSelected = dateStr === selectedDate;
 
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => setSelectedDate(dateStr)}
-                    className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
-                      isToday
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : isSelected
-                        ? "bg-primary/20 text-primary font-semibold"
-                        : hasNotes
-                        ? "bg-primary/10 text-foreground"
-                        : "hover:bg-muted text-foreground"
-                    }`}
-                  >
-                    {format(day, "d")}
-                    {hasNotes && !isToday && (
-                      <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => setSelectedDate(dateStr)}
+                      className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors ${
+                        isToday
+                          ? "bg-primary text-primary-foreground font-bold"
+                          : isSelected
+                          ? "bg-primary/20 text-primary font-semibold"
+                          : hasNotes
+                          ? "bg-primary/10 text-foreground"
+                          : "hover:bg-muted text-foreground"
+                      }`}
+                    >
+                      {format(day, "d")}
+                      {hasNotes && !isToday && (
+                        <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Button onClick={handleNewNote} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
+              <Plus className="w-5 h-5" /> Nova Anotação
+            </Button>
+          </div>
 
           {/* Notes panel - always visible */}
           <Card className="w-full lg:w-96 p-5 border border-primary/20 rounded-3xl shadow-lg">
@@ -208,13 +214,6 @@ export default function Dashboard() {
               </div>
             )}
           </Card>
-        </div>
-
-        {/* New note button - aligned with calendar */}
-        <div className="flex-1 max-w-3xl mt-6">
-          <Button onClick={handleNewNote} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
-            <Plus className="w-5 h-5" /> Nova Anotação
-          </Button>
         </div>
       </main>
 
