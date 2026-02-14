@@ -3,17 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cross } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) {
-      localStorage.setItem("intestine_user", username.trim());
+    if (!email.trim() || !password.trim()) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setLoading(false);
+
+    if (error) {
+      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+    } else {
       navigate("/dashboard");
     }
   };
@@ -34,11 +50,12 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Nome de usuário</label>
+              <label className="text-sm font-medium text-foreground">Email</label>
               <Input
-                placeholder="Digite seu usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                placeholder="Digite seu email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="bg-muted/50"
               />
             </div>
@@ -52,13 +69,13 @@ const Login = () => {
                 className="bg-muted/50"
               />
             </div>
-            <Button type="submit" className="w-full h-11 text-base font-semibold rounded-xl">
-              Entrar
+            <Button type="submit" className="w-full h-11 text-base font-semibold rounded-xl" disabled={loading}>
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
           <p className="text-center mt-4">
-            <button className="text-primary text-sm font-medium hover:underline">
+            <button onClick={() => navigate("/register")} className="text-primary text-sm font-medium hover:underline">
               Criar nova conta
             </button>
           </p>
