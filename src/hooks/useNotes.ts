@@ -58,6 +58,19 @@ export function useNotes() {
     if (!user) return;
 
     const difficulty = difficultyMap[note.difficulty] || (note.difficulty as Difficulty);
+    const tempId = crypto.randomUUID();
+    const optimisticNote: Annotation = {
+      id: tempId,
+      user_id: user.id,
+      difficulty,
+      duration: note.duration,
+      observations: note.text || null,
+      day: note.date,
+      created_at: new Date().toISOString(),
+    };
+
+    // Show immediately
+    setNotes((prev) => [optimisticNote, ...prev]);
 
     const { error } = await supabase.from("annotations").insert({
       user_id: user.id,
@@ -68,9 +81,12 @@ export function useNotes() {
     });
 
     if (error) {
+      // Rollback
+      setNotes((prev) => prev.filter((n) => n.id !== tempId));
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      await fetchNotes();
+      // Sync real IDs
+      fetchNotes();
     }
   };
 
@@ -80,22 +96,34 @@ export function useNotes() {
     if (data.duration !== undefined) updates.duration = data.duration;
     if (data.text !== undefined) updates.observations = data.text || null;
 
+    // Optimistic update
+    const previousNotes = notes;
+    setNotes((prev) =>
+      prev.map((n) =>
+        n.id === id
+          ? { ...n, ...(updates.difficulty && { difficulty: updates.difficulty as Difficulty }), ...(updates.duration !== undefined && { duration: updates.duration as number }), ...(updates.observations !== undefined && { observations: updates.observations as string | null }) }
+          : n
+      )
+    );
+
     const { error } = await supabase.from("annotations").update(updates).eq("id", id);
 
     if (error) {
+      setNotes(previousNotes);
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
-    } else {
-      await fetchNotes();
     }
   };
 
   const deleteNote = async (id: string) => {
+    // Optimistic delete
+    const previousNotes = notes;
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+
     const { error } = await supabase.from("annotations").delete().eq("id", id);
 
     if (error) {
+      setNotes(previousNotes);
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      await fetchNotes();
     }
   };
 

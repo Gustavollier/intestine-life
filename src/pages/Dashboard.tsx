@@ -36,7 +36,7 @@ export default function Dashboard() {
         return;
       }
       const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
-      if (data?.name) setUsername(data.name);
+      if (data?.name) setUsername(data.name.split(" ")[0]);
     };
     getProfile();
   }, [navigate]);
