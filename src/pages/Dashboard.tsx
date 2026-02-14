@@ -1,17 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useNotes } from "@/hooks/useNotes";
+import { useNotes, Annotation } from "@/hooks/useNotes";
 import { NoteDialog } from "@/components/NoteDialog";
-import { Note, Difficulty } from "@/types/note";
+import { Difficulty } from "@/types/note";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-const difficultyColors: Record<Difficulty, string> = {
+const difficultyColors: Record<string, string> = {
   "Fácil": "bg-primary/20 text-primary",
   "Normal": "bg-yellow-100 text-yellow-700",
   "Difícil": "bg-red-100 text-red-600",
@@ -19,13 +20,26 @@ const difficultyColors: Record<Difficulty, string> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const username = localStorage.getItem("intestine_user") || "usuário";
-  const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes } = useNotes();
+  const [username, setUsername] = useState("usuário");
+  const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap } = useNotes();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | undefined>();
+  const [editingNote, setEditingNote] = useState<Annotation | undefined>();
+
+  useEffect(() => {
+    const getProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/");
+        return;
+      }
+      const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
+      if (data?.name) setUsername(data.name);
+    };
+    getProfile();
+  }, [navigate]);
 
   const datesWithNotes = getDatesWithNotes();
   const selectedNotes = selectedDate ? getNotesForDate(selectedDate) : [];
@@ -40,8 +54,8 @@ export default function Dashboard() {
 
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const handleLogout = () => {
-    localStorage.removeItem("intestine_user");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
@@ -50,18 +64,29 @@ export default function Dashboard() {
     setDialogOpen(true);
   };
 
-  const handleEditNote = (note: Note) => {
+  const handleEditNote = (note: Annotation) => {
     setEditingNote(note);
     setDialogOpen(true);
   };
 
-  const handleSaveNote = (data: { difficulty: Difficulty; duration: number; text: string }) => {
+  const handleSaveNote = async (data: { difficulty: Difficulty; duration: number; text: string }) => {
     if (editingNote) {
-      updateNote(editingNote.id, data);
+      await updateNote(editingNote.id, data);
     } else if (selectedDate) {
-      addNote({ ...data, date: selectedDate });
+      await addNote({ ...data, date: selectedDate });
     }
   };
+
+  // Convert Annotation to Note-like shape for NoteDialog
+  const editingNoteForDialog = editingNote
+    ? {
+        id: editingNote.id,
+        date: editingNote.day,
+        difficulty: (difficultyDisplayMap[editingNote.difficulty] || "Fácil") as Difficulty,
+        duration: editingNote.duration,
+        text: editingNote.observations || "",
+      }
+    : undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,7 +173,7 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          {/* Notes panel - always visible */}
+          {/* Notes panel */}
           <Card className="w-full lg:w-96 p-5 border border-primary/20 rounded-3xl shadow-lg">
             {selectedDate ? (
               <>
@@ -173,32 +198,35 @@ export default function Dashboard() {
                       Nenhuma anotação para este dia.
                     </p>
                   ) : (
-                    selectedNotes.map((note, idx) => (
-                      <div key={note.id} className="border border-border rounded-xl p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                              #{idx + 1}
-                            </span>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[note.difficulty]}`}>
-                              {note.difficulty}
-                            </span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" /> {note.duration} min
-                            </span>
+                    selectedNotes.map((note, idx) => {
+                      const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
+                      return (
+                        <div key={note.id} className="border border-border rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                #{idx + 1}
+                              </span>
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[displayDifficulty] || ""}`}>
+                                {displayDifficulty}
+                              </span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                <Clock className="w-3 h-3" /> {note.duration} min
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              <button onClick={() => handleEditNote(note)} className="p-1.5 hover:bg-muted rounded">
+                                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                              <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-destructive/10 rounded">
+                                <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex gap-1">
-                            <button onClick={() => handleEditNote(note)} className="p-1.5 hover:bg-muted rounded">
-                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                            </button>
-                            <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-destructive/10 rounded">
-                              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            </button>
-                          </div>
+                          {note.observations && <p className="text-sm text-foreground">{note.observations}</p>}
                         </div>
-                        {note.text && <p className="text-sm text-foreground">{note.text}</p>}
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </>
@@ -222,7 +250,7 @@ export default function Dashboard() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           date={selectedDate}
-          note={editingNote}
+          note={editingNoteForDialog}
           onSave={handleSaveNote}
         />
       )}

@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      annotations: {
+        Row: {
+          created_at: string
+          day: string
+          difficulty: Database["public"]["Enums"]["difficulty"]
+          duration: number
+          id: string
+          observations: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          difficulty: Database["public"]["Enums"]["difficulty"]
+          duration: number
+          id?: string
+          observations?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          difficulty?: Database["public"]["Enums"]["difficulty"]
+          duration?: number
+          id?: string
+          observations?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          birthdate: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birthdate?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birthdate?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +85,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      difficulty: "facil" | "normal" | "dificil"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +212,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      difficulty: ["facil", "normal", "dificil"],
+    },
   },
 } as const
