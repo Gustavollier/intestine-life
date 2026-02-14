@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useNotes, Annotation } from "@/hooks/useNotes";
 import { NoteDialog } from "@/components/NoteDialog";
 import { Difficulty } from "@/types/note";
+import { ChatWidget } from "@/components/ChatWidget";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -254,6 +255,8 @@ export default function Dashboard() {
           onSave={handleSaveNote}
         />
       )}
+
+      <ChatWidget />
     </div>
   );
 }
