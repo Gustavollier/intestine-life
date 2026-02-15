@@ -42,7 +42,7 @@ export function useNotes() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Erro ao carregar anotações", variant: "destructive" });
+      toast({ title: "Erro ao carregar registros", variant: "destructive" });
     } else {
       setNotes((data as Annotation[]) || []);
     }
