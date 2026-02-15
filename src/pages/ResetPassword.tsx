@@ -110,6 +110,9 @@ const ResetPassword = () => {
           src={intestineHero}
           alt="Intestine Life"
           className="w-[70%] max-w-lg object-contain drop-shadow-2xl"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
     </div>

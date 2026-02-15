@@ -98,7 +98,7 @@ const ForgotPassword = () => {
       </div>
 
       <div className="hidden lg:flex w-1/2 bg-primary items-center justify-center relative overflow-hidden">
-        <img src={intestineHero} alt="Intestine Life" className="w-[70%] max-w-lg object-contain drop-shadow-2xl" />
+        <img src={intestineHero} alt="Intestine Life" className="w-[70%] max-w-lg object-contain drop-shadow-2xl" loading="eager" fetchPriority="high" decoding="async" />
       </div>
     </div>
   );
