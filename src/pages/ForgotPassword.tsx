@@ -11,12 +11,10 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [code, setCode] = useState("");
-  const [verifying, setVerifying] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSendCode = async (e: React.FormEvent) => {
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       toast({ title: "Digite seu email", variant: "destructive" });
@@ -33,29 +31,6 @@ const ForgotPassword = () => {
       toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
     } else {
       setSent(true);
-      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada." });
-    }
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || code.trim().length < 6) {
-      toast({ title: "Digite o código de 6 dígitos", variant: "destructive" });
-      return;
-    }
-
-    setVerifying(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: code.trim(),
-      type: "recovery",
-    });
-    setVerifying(false);
-
-    if (error) {
-      toast({ title: "Código inválido", description: error.message, variant: "destructive" });
-    } else {
-      navigate("/reset-password");
     }
   };
 
@@ -72,12 +47,12 @@ const ForgotPassword = () => {
               </div>
               <h1 className="text-2xl font-bold text-foreground">Recuperar Senha</h1>
               <p className="text-muted-foreground text-sm mt-1">
-                {sent ? "Digite o código enviado para seu email" : "Informe seu email para receber o código"}
+                {sent ? "Verifique sua caixa de entrada" : "Informe seu email para receber o link"}
               </p>
             </div>
 
             {!sent ? (
-              <form onSubmit={handleSendCode} className="space-y-4">
+              <form onSubmit={handleSendLink} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">Email</label>
                   <Input
@@ -89,32 +64,28 @@ const ForgotPassword = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full h-11 text-base font-semibold rounded-xl" disabled={loading}>
-                  {loading ? "Enviando..." : "Enviar código"}
+                  {loading ? "Enviando..." : "Enviar link de recuperação"}
                 </Button>
               </form>
             ) : (
-              <form onSubmit={handleVerifyCode} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Código de verificação</label>
-                  <Input
-                    placeholder="Digite o código de 6 dígitos"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    className="bg-muted/50 text-center text-lg tracking-widest"
-                    maxLength={6}
-                  />
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    <path d="m16 19 2 2 4-4" />
+                  </svg>
                 </div>
-                <Button type="submit" className="w-full h-11 text-base font-semibold rounded-xl" disabled={verifying}>
-                  {verifying ? "Verificando..." : "Verificar código"}
-                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Enviamos um link de recuperação para <strong className="text-foreground">{email}</strong>. Clique no link do email para redefinir sua senha.
+                </p>
                 <button
-                  type="button"
-                  onClick={() => { setSent(false); setCode(""); }}
-                  className="w-full text-sm text-muted-foreground hover:text-primary hover:underline"
+                  onClick={() => setSent(false)}
+                  className="text-sm text-primary hover:underline"
                 >
-                  Reenviar código
+                  Reenviar email
                 </button>
-              </form>
+              </div>
             )}
 
             <p className="text-center mt-4">
@@ -127,11 +98,7 @@ const ForgotPassword = () => {
       </div>
 
       <div className="hidden lg:flex w-1/2 bg-primary items-center justify-center relative overflow-hidden">
-        <img
-          src={intestineHero}
-          alt="Intestine Life"
-          className="w-[70%] max-w-lg object-contain drop-shadow-2xl"
-        />
+        <img src={intestineHero} alt="Intestine Life" className="w-[70%] max-w-lg object-contain drop-shadow-2xl" />
       </div>
     </div>
   );
