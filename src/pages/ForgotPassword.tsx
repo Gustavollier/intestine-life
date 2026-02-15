@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import intestineHero from "@/assets/intestine-hero.png";
+import intestineHero from "@/assets/intestine-hero-opt.webp";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
