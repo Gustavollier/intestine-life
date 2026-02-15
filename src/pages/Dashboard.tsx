@@ -174,10 +174,6 @@ export default function Dashboard() {
             <Button onClick={handleNewNote} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
               <Plus className="w-5 h-5" /> Novo Registro de Evacuação
             </Button>
-
-            <div className="flex justify-center mt-2">
-              <img src={washHandsSvg} alt="Ilustração de saúde" className="w-48 h-auto opacity-60" />
-            </div>
           </div>
 
           {/* Notes panel */}
@@ -201,9 +197,12 @@ export default function Dashboard() {
 
                 <div className="space-y-3 mt-4">
                   {selectedNotes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      Nenhum registro de evacuação para este dia.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <img src={washHandsSvg} alt="Ilustração de saúde" className="w-36 h-auto opacity-50 mb-3" />
+                      <p className="text-sm text-muted-foreground text-center">
+                        Nenhum registro de evacuação para este dia.
+                      </p>
+                    </div>
                   ) : (
                     selectedNotes.map((note, idx) => {
                       const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
