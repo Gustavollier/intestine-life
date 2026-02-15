@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useNotes, Annotation } from "@/hooks/useNotes";
+import { useNotes, Evacuation } from "@/hooks/useNotes";
 import { NoteDialog } from "@/components/NoteDialog";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(format(new Date(), "yyyy-MM-dd"));
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Annotation | undefined>();
+  const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
 
   useEffect(() => {
     const getProfile = async () => {
@@ -65,12 +65,12 @@ export default function Dashboard() {
     setDialogOpen(true);
   };
 
-  const handleEditNote = (note: Annotation) => {
+  const handleEditNote = (note: Evacuation) => {
     setEditingNote(note);
     setDialogOpen(true);
   };
 
-  const handleSaveNote = async (data: { difficulty: Difficulty; duration: number; text: string }) => {
+  const handleSaveNote = async (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null }) => {
     if (editingNote) {
       await updateNote(editingNote.id, data);
     } else if (selectedDate) {
@@ -86,6 +86,7 @@ export default function Dashboard() {
         difficulty: (difficultyDisplayMap[editingNote.difficulty] || "Fácil") as Difficulty,
         duration: editingNote.duration,
         text: editingNote.observations || "",
+        time_of_day: editingNote.time_of_day || null,
       }
     : undefined;
 
@@ -212,7 +213,7 @@ export default function Dashboard() {
                                 {displayDifficulty}
                               </span>
                               <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                                <Clock className="w-3 h-3" /> {note.duration} min
+                                <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration} min
                               </span>
                             </div>
                             <div className="flex gap-1">

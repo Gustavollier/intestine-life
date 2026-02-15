@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      annotations: {
+      evacuations: {
         Row: {
           created_at: string
           day: string
@@ -22,6 +22,7 @@ export type Database = {
           duration: number
           id: string
           observations: string | null
+          time_of_day: string | null
           user_id: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           duration: number
           id?: string
           observations?: string | null
+          time_of_day?: string | null
           user_id: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           duration?: number
           id?: string
           observations?: string | null
+          time_of_day?: string | null
           user_id?: string
         }
         Relationships: []
