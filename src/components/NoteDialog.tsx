@@ -46,7 +46,7 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Anotação" : "Nova Anotação"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Registro" : "Novo Registro de Evacuação"}</DialogTitle>
           <p className="text-sm text-muted-foreground">{formattedDate}</p>
         </DialogHeader>
 
@@ -99,9 +99,9 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
           </div>
 
           <div>
-            <p className="text-sm font-medium mb-2">Anotações (opcional)</p>
-            <Textarea
-              placeholder="Adicione observações sobre alimentação, sintomas, etc..."
+            <p className="text-sm font-medium mb-2">Observações (opcional)</p>
+              <Textarea
+                placeholder="Adicione observações sobre consistência, alimentação, sintomas, etc..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="min-h-[100px] resize-none"
@@ -119,7 +119,7 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
             </div>
           ) : (
             <Button className="w-full rounded-xl h-11" onClick={handleSave}>
-              <Plus className="w-4 h-4 mr-1" /> Salvar Anotação
+              <Plus className="w-4 h-4 mr-1" /> Salvar Registro
             </Button>
           )}
         </div>

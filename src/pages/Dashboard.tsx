@@ -25,7 +25,7 @@ export default function Dashboard() {
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap } = useNotes();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(format(new Date(), "yyyy-MM-dd"));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Annotation | undefined>();
 
@@ -170,7 +170,7 @@ export default function Dashboard() {
             </Card>
 
             <Button onClick={handleNewNote} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
-              <Plus className="w-5 h-5" /> Nova Anotação
+              <Plus className="w-5 h-5" /> Novo Registro de Evacuação
             </Button>
           </div>
 
@@ -180,7 +180,7 @@ export default function Dashboard() {
               <>
                 <div className="flex items-start justify-between mb-1">
                   <div>
-                    <h3 className="font-bold text-foreground">Anotações do Dia</h3>
+                    <h3 className="font-bold text-foreground">Evacuações do Dia</h3>
                     <p className="text-sm text-muted-foreground">
                       {format(parseISO(selectedDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </p>
@@ -196,7 +196,7 @@ export default function Dashboard() {
                 <div className="space-y-3 mt-4">
                   {selectedNotes.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      Nenhuma anotação para este dia.
+                      Nenhum registro de evacuação para este dia.
                     </p>
                   ) : (
                     selectedNotes.map((note, idx) => {
