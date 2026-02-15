@@ -7,6 +7,7 @@ import { NoteDialog } from "@/components/NoteDialog";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X } from "lucide-react";
+import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,7 +113,7 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
+        <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal de constipação</h2>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Calendar column */}
@@ -173,6 +174,10 @@ export default function Dashboard() {
             <Button onClick={handleNewNote} className="w-full h-12 rounded-xl text-base font-semibold gap-2">
               <Plus className="w-5 h-5" /> Novo Registro de Evacuação
             </Button>
+
+            <div className="flex justify-center mt-2">
+              <img src={washHandsSvg} alt="Ilustração de saúde" className="w-48 h-auto opacity-60" />
+            </div>
           </div>
 
           {/* Notes panel */}
