@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircleQuestion, X, Send, Loader2 } from "lucide-react";
+import { Bot, X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
@@ -157,7 +157,7 @@ export function ChatWidget() {
           className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center"
           aria-label="Abrir chat de saúde"
         >
-          <MessageCircleQuestion className="w-6 h-6" />
+          <span className="text-lg">🤖</span>
         </button>
       )}
 
@@ -168,7 +168,7 @@ export function ChatWidget() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <MessageCircleQuestion className="w-4 h-4 text-primary-foreground" />
+                <span className="text-sm">🤖</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Dr. Intestine</p>
@@ -184,7 +184,7 @@ export function ChatWidget() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {messages.length === 0 && (
               <div className="text-center py-8">
-                <MessageCircleQuestion className="w-10 h-10 text-primary/30 mx-auto mb-3" />
+                <span className="text-3xl">🤖</span>
                 <p className="text-sm text-muted-foreground font-medium">
                   Olá! Sou o Dr. Intestine 👋
                 </p>
