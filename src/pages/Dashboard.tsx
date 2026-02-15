@@ -238,12 +238,7 @@ export default function Dashboard() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-3 opacity-40">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
+                <img src={washHandsSvg} alt="Ilustração de saúde" className="w-40 h-auto opacity-50 mb-4" />
                 <p className="text-sm font-medium">Selecione um dia</p>
               </div>
             )}
