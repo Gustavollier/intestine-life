@@ -4,13 +4,14 @@ import { useToast } from "@/hooks/use-toast";
 
 export type Difficulty = "facil" | "normal" | "dificil";
 
-export interface Annotation {
+export interface Evacuation {
   id: string;
   user_id: string;
   difficulty: Difficulty;
   duration: number;
   observations: string | null;
   day: string;
+  time_of_day: string | null;
   created_at: string;
 }
 
@@ -27,7 +28,7 @@ const difficultyDisplayMap: Record<Difficulty, string> = {
 };
 
 export function useNotes() {
-  const [notes, setNotes] = useState<Annotation[]>([]);
+  const [notes, setNotes] = useState<Evacuation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -36,7 +37,7 @@ export function useNotes() {
     if (!user) return;
 
     const { data, error } = await supabase
-      .from("annotations")
+      .from("evacuations")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -44,7 +45,7 @@ export function useNotes() {
     if (error) {
       toast({ title: "Erro ao carregar registros", variant: "destructive" });
     } else {
-      setNotes((data as Annotation[]) || []);
+      setNotes((data as Evacuation[]) || []);
     }
     setLoading(false);
   }, [toast]);
@@ -53,60 +54,65 @@ export function useNotes() {
     fetchNotes();
   }, [fetchNotes]);
 
-  const addNote = async (note: { difficulty: string; duration: number; text: string; date: string }) => {
+  const addNote = async (note: { difficulty: string; duration: number; text: string; date: string; time_of_day: string | null }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const difficulty = difficultyMap[note.difficulty] || (note.difficulty as Difficulty);
     const tempId = crypto.randomUUID();
-    const optimisticNote: Annotation = {
+    const optimisticNote: Evacuation = {
       id: tempId,
       user_id: user.id,
       difficulty,
       duration: note.duration,
       observations: note.text || null,
       day: note.date,
+      time_of_day: note.time_of_day,
       created_at: new Date().toISOString(),
     };
 
-    // Show immediately
     setNotes((prev) => [optimisticNote, ...prev]);
 
-    const { error } = await supabase.from("annotations").insert({
+    const { error } = await supabase.from("evacuations").insert({
       user_id: user.id,
       difficulty,
       duration: note.duration,
       observations: note.text || null,
       day: note.date,
+      time_of_day: note.time_of_day,
     });
 
     if (error) {
-      // Rollback
       setNotes((prev) => prev.filter((n) => n.id !== tempId));
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      // Sync real IDs
       fetchNotes();
     }
   };
 
-  const updateNote = async (id: string, data: { difficulty?: string; duration?: number; text?: string }) => {
+  const updateNote = async (id: string, data: { difficulty?: string; duration?: number; text?: string; time_of_day?: string | null }) => {
     const updates: Record<string, unknown> = {};
     if (data.difficulty) updates.difficulty = difficultyMap[data.difficulty] || data.difficulty;
     if (data.duration !== undefined) updates.duration = data.duration;
     if (data.text !== undefined) updates.observations = data.text || null;
+    if (data.time_of_day !== undefined) updates.time_of_day = data.time_of_day;
 
-    // Optimistic update
     const previousNotes = notes;
     setNotes((prev) =>
       prev.map((n) =>
         n.id === id
-          ? { ...n, ...(updates.difficulty && { difficulty: updates.difficulty as Difficulty }), ...(updates.duration !== undefined && { duration: updates.duration as number }), ...(updates.observations !== undefined && { observations: updates.observations as string | null }) }
+          ? {
+              ...n,
+              ...(updates.difficulty && { difficulty: updates.difficulty as Difficulty }),
+              ...(updates.duration !== undefined && { duration: updates.duration as number }),
+              ...(updates.observations !== undefined && { observations: updates.observations as string | null }),
+              ...(updates.time_of_day !== undefined && { time_of_day: updates.time_of_day as string | null }),
+            }
           : n
       )
     );
 
-    const { error } = await supabase.from("annotations").update(updates).eq("id", id);
+    const { error } = await supabase.from("evacuations").update(updates).eq("id", id);
 
     if (error) {
       setNotes(previousNotes);
@@ -115,11 +121,10 @@ export function useNotes() {
   };
 
   const deleteNote = async (id: string) => {
-    // Optimistic delete
     const previousNotes = notes;
     setNotes((prev) => prev.filter((n) => n.id !== id));
 
-    const { error } = await supabase.from("annotations").delete().eq("id", id);
+    const { error } = await supabase.from("evacuations").delete().eq("id", id);
 
     if (error) {
       setNotes(previousNotes);

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Difficulty, Note } from "@/types/note";
 import { Clock, Plus, Minus, Save } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -12,7 +13,7 @@ interface NoteDialogProps {
   onOpenChange: (open: boolean) => void;
   date: string;
   note?: Note;
-  onSave: (data: { difficulty: Difficulty; duration: number; text: string }) => void;
+  onSave: (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null }) => void;
 }
 
 const difficulties: Difficulty[] = ["Fácil", "Normal", "Difícil"];
@@ -21,21 +22,24 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
   const [difficulty, setDifficulty] = useState<Difficulty>("Fácil");
   const [duration, setDuration] = useState(5);
   const [text, setText] = useState("");
+  const [timeOfDay, setTimeOfDay] = useState<string>(format(new Date(), "HH:mm"));
 
   useEffect(() => {
     if (note) {
       setDifficulty(note.difficulty);
       setDuration(note.duration);
       setText(note.text);
+      setTimeOfDay(note.time_of_day || format(new Date(), "HH:mm"));
     } else {
       setDifficulty("Fácil");
       setDuration(5);
       setText("");
+      setTimeOfDay(format(new Date(), "HH:mm"));
     }
   }, [note, open]);
 
   const handleSave = () => {
-    onSave({ difficulty, duration, text });
+    onSave({ difficulty, duration, text, time_of_day: timeOfDay || null });
     onOpenChange(false);
   };
 
@@ -51,6 +55,21 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
         </DialogHeader>
 
         <div className="space-y-5 mt-2">
+          {/* Time of day */}
+          <div>
+            <p className="text-sm font-medium mb-2 flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              Horário
+            </p>
+            <Input
+              type="time"
+              value={timeOfDay}
+              onChange={(e) => setTimeOfDay(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Difficulty */}
           <div>
             <p className="text-sm font-medium mb-2">Como foi?</p>
             <div className="flex gap-2">
@@ -70,6 +89,7 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
             </div>
           </div>
 
+          {/* Duration */}
           <div>
             <p className="text-sm font-medium mb-2 flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
@@ -98,10 +118,11 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
             </div>
           </div>
 
+          {/* Observations */}
           <div>
             <p className="text-sm font-medium mb-2">Observações (opcional)</p>
-              <Textarea
-                placeholder="Adicione observações sobre consistência, alimentação, sintomas, etc..."
+            <Textarea
+              placeholder="Adicione observações sobre consistência, alimentação, sintomas, etc..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="min-h-[100px] resize-none"

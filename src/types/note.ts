@@ -6,4 +6,5 @@ export interface Note {
   difficulty: Difficulty;
   duration: number; // minutes
   text: string;
+  time_of_day: string | null; // HH:MM
 }
