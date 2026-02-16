@@ -7,9 +7,10 @@ import { useFoodDiary } from "@/hooks/useFoodDiary";
 import { useHydration } from "@/hooks/useHydration";
 import { NoteDialog } from "@/components/NoteDialog";
 import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
+import { HydrationProgress } from "@/components/HydrationProgress";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, Minus } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,6 +47,15 @@ export default function Dashboard() {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisDate, setAnalysisDate] = useState<string | null>(null);
+  const [hydrationGoal, setHydrationGoal] = useState(() => {
+    const saved = localStorage.getItem("hydration_goal_ml");
+    return saved ? parseInt(saved, 10) : 2000;
+  });
+
+  const handleGoalChange = (goal: number) => {
+    setHydrationGoal(goal);
+    localStorage.setItem("hydration_goal_ml", String(goal));
+  };
 
   // Reopen NoteDialog when returning from Bristol Scale page
   useEffect(() => {
@@ -454,14 +464,12 @@ export default function Dashboard() {
                 ) : (
                   /* Hydration Tab */
                   <div className="space-y-4">
-                    {/* Total summary */}
-                    <div className="text-center py-3">
-                      <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full">
-                        <Droplets className="w-4 h-4" />
-                        <span className="text-lg font-bold">{selectedHydrationTotal}ml</span>
-                        <span className="text-xs">hoje</span>
-                      </div>
-                    </div>
+                    {/* Circular progress */}
+                    <HydrationProgress
+                      currentMl={selectedHydrationTotal}
+                      goalMl={hydrationGoal}
+                      onGoalChange={handleGoalChange}
+                    />
 
                     {/* Quick add buttons */}
                     <div className="grid grid-cols-2 gap-3">
@@ -505,7 +513,7 @@ export default function Dashboard() {
                               onClick={() => deleteHydration(entry.id)}
                               className="p-1.5 hover:bg-destructive/10 rounded"
                             >
-                              <Minus className="w-3.5 h-3.5 text-muted-foreground" />
+                              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
                           </div>
                         ))}
