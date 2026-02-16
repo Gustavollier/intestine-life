@@ -77,6 +77,33 @@ export type Database = {
         }
         Relationships: []
       }
+      hydration: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          ml: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          id?: string
+          ml: number
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          ml?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birthdate: string | null
