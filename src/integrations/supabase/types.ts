@@ -47,6 +47,33 @@ export type Database = {
         }
         Relationships: []
       }
+      food_diary: {
+        Row: {
+          created_at: string
+          day: string
+          description: string
+          id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          description: string
+          id?: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          description?: string
+          id?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birthdate: string | null
@@ -89,6 +116,7 @@ export type Database = {
     }
     Enums: {
       difficulty: "facil" | "normal" | "dificil"
+      meal_type: "breakfast" | "lunch" | "snack" | "dinner" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -217,6 +245,7 @@ export const Constants = {
   public: {
     Enums: {
       difficulty: ["facil", "normal", "dificil"],
+      meal_type: ["breakfast", "lunch", "snack", "dinner", "other"],
     },
   },
 } as const
