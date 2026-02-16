@@ -98,7 +98,7 @@ export default function BristolScale() {
           {bristolTypes.map((item) => (
             <Card key={item.type} className={`p-4 rounded-2xl border ${item.color}`}>
               <div className="flex items-start gap-3">
-                <img src={bristolImages[item.type]} alt={`Tipo ${item.type}`} className="w-12 h-12 rounded-lg object-cover" />
+                <img src={bristolImages[item.type]} alt={`Tipo ${item.type}`} className="w-14 h-14 rounded-xl object-contain bg-white p-1 shadow-sm" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-sm mb-1">{item.title}</h3>
                   <p className="text-xs leading-relaxed opacity-80">{item.description}</p>
