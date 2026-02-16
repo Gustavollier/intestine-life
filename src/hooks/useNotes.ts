@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,12 +28,24 @@ const difficultyDisplayMap: Record<Difficulty, string> = {
   dificil: "Difícil",
 };
 
+// Module-level cache to avoid re-fetching on every navigation
+let cachedNotes: Evacuation[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export function useNotes() {
-  const [notes, setNotes] = useState<Evacuation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<Evacuation[]>(cachedNotes || []);
+  const [loading, setLoading] = useState(!cachedNotes);
   const { toast } = useToast();
 
-  const fetchNotes = useCallback(async () => {
+  const fetchNotes = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && cachedNotes && (now - cacheTimestamp) < CACHE_TTL) {
+      setNotes(cachedNotes);
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -46,7 +58,10 @@ export function useNotes() {
     if (error) {
       toast({ title: "Erro ao carregar registros", variant: "destructive" });
     } else {
-      setNotes((data as Evacuation[]) || []);
+      const result = (data as Evacuation[]) || [];
+      cachedNotes = result;
+      cacheTimestamp = Date.now();
+      setNotes(result);
     }
     setLoading(false);
   }, [toast]);
@@ -73,7 +88,7 @@ export function useNotes() {
       created_at: new Date().toISOString(),
     };
 
-    setNotes((prev) => [optimisticNote, ...prev]);
+    setNotes((prev) => { const next = [optimisticNote, ...prev]; cachedNotes = next; return next; });
 
     const { error } = await supabase.from("evacuations").insert({
       user_id: user.id,
@@ -89,7 +104,7 @@ export function useNotes() {
       setNotes((prev) => prev.filter((n) => n.id !== tempId));
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      fetchNotes();
+      fetchNotes(true);
     }
   };
 
@@ -126,7 +141,7 @@ export function useNotes() {
 
   const deleteNote = async (id: string) => {
     const previousNotes = notes;
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+    setNotes((prev) => { const next = prev.filter((n) => n.id !== id); cachedNotes = next; return next; });
 
     const { error } = await supabase.from("evacuations").delete().eq("id", id);
 
