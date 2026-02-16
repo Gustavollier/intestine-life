@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useNotes, Evacuation } from "@/hooks/useNotes";
 import { useFoodDiary } from "@/hooks/useFoodDiary";
 import { NoteDialog } from "@/components/NoteDialog";
@@ -148,10 +147,13 @@ export default function Dashboard() {
               </div>
 
               {isLoading ? (
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({ length: 35 }).map((_, i) => (
-                    <Skeleton key={i} className="aspect-square rounded-lg" />
-                  ))}
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse"
+                    style={{ animationDuration: "1.5s" }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
+                    </svg>
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-7 gap-1">
@@ -242,10 +244,13 @@ export default function Dashboard() {
                 </div>
 
                 {isLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2].map((i) => (
-                      <Skeleton key={i} className="h-20 rounded-xl" />
-                    ))}
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center animate-pulse"
+                      style={{ animationDuration: "1.5s" }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
+                      </svg>
+                    </div>
                   </div>
                 ) : activeTab === "evacuations" ? (
                   <div className="space-y-3">
@@ -308,7 +313,7 @@ export default function Dashboard() {
                               <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
                           </div>
-                          <p className="text-sm text-foreground">{entry.description}</p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{entry.description}</p>
                         </div>
                       ))
                     )}
