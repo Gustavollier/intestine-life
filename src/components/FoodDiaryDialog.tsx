@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MealType } from "@/hooks/useFoodDiary";
-import { Plus, UtensilsCrossed } from "lucide-react";
+import { MealType, FoodEntry } from "@/hooks/useFoodDiary";
+import { Plus, UtensilsCrossed, Save } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -11,7 +11,9 @@ interface FoodDiaryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: string;
+  entry?: FoodEntry;
   onSave: (data: { day: string; meal_type: MealType; description: string }) => void;
+  onUpdate?: (id: string, data: { meal_type: MealType; description: string }) => void;
 }
 
 const mealOptions: { value: MealType; label: string; emoji: string }[] = [
@@ -22,13 +24,29 @@ const mealOptions: { value: MealType; label: string; emoji: string }[] = [
   { value: "other", label: "Outro", emoji: "🍴" },
 ];
 
-export function FoodDiaryDialog({ open, onOpenChange, date, onSave }: FoodDiaryDialogProps) {
+export function FoodDiaryDialog({ open, onOpenChange, date, entry, onSave, onUpdate }: FoodDiaryDialogProps) {
   const [mealType, setMealType] = useState<MealType>("lunch");
   const [description, setDescription] = useState("");
 
+  const isEditing = !!entry;
+
+  useEffect(() => {
+    if (entry) {
+      setMealType(entry.meal_type);
+      setDescription(entry.description);
+    } else {
+      setMealType("lunch");
+      setDescription("");
+    }
+  }, [entry, open]);
+
   const handleSave = () => {
     if (!description.trim()) return;
-    onSave({ day: date, meal_type: mealType, description: description.trim() });
+    if (isEditing && onUpdate) {
+      onUpdate(entry.id, { meal_type: mealType, description: description.trim() });
+    } else {
+      onSave({ day: date, meal_type: mealType, description: description.trim() });
+    }
     setDescription("");
     setMealType("lunch");
     onOpenChange(false);
@@ -42,7 +60,7 @@ export function FoodDiaryDialog({ open, onOpenChange, date, onSave }: FoodDiaryD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UtensilsCrossed className="w-5 h-5 text-primary" />
-            Nova Refeição
+            {isEditing ? "Editar Refeição" : "Nova Refeição"}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">{formattedDate}</p>
         </DialogHeader>
@@ -80,13 +98,28 @@ export function FoodDiaryDialog({ open, onOpenChange, date, onSave }: FoodDiaryD
             />
           </div>
 
-          <Button
-            className="w-full rounded-xl h-11"
-            onClick={handleSave}
-            disabled={!description.trim()}
-          >
-            <Plus className="w-4 h-4 mr-1" /> Salvar Refeição
-          </Button>
+          {isEditing ? (
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 rounded-xl"
+                onClick={handleSave}
+                disabled={!description.trim()}
+              >
+                <Save className="w-4 h-4 mr-1" /> Salvar
+              </Button>
+            </div>
+          ) : (
+            <Button
+              className="w-full rounded-xl h-11"
+              onClick={handleSave}
+              disabled={!description.trim()}
+            >
+              <Plus className="w-4 h-4 mr-1" /> Salvar Refeição
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

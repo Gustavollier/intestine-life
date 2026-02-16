@@ -12,6 +12,7 @@ export interface Evacuation {
   observations: string | null;
   day: string;
   time_of_day: string | null;
+  bristol_scale: number | null;
   created_at: string;
 }
 
@@ -54,7 +55,7 @@ export function useNotes() {
     fetchNotes();
   }, [fetchNotes]);
 
-  const addNote = async (note: { difficulty: string; duration: number; text: string; date: string; time_of_day: string | null }) => {
+  const addNote = async (note: { difficulty: string; duration: number; text: string; date: string; time_of_day: string | null; bristol_scale: number | null }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -68,6 +69,7 @@ export function useNotes() {
       observations: note.text || null,
       day: note.date,
       time_of_day: note.time_of_day,
+      bristol_scale: note.bristol_scale,
       created_at: new Date().toISOString(),
     };
 
@@ -80,6 +82,7 @@ export function useNotes() {
       observations: note.text || null,
       day: note.date,
       time_of_day: note.time_of_day,
+      bristol_scale: note.bristol_scale,
     });
 
     if (error) {
@@ -90,12 +93,13 @@ export function useNotes() {
     }
   };
 
-  const updateNote = async (id: string, data: { difficulty?: string; duration?: number; text?: string; time_of_day?: string | null }) => {
+  const updateNote = async (id: string, data: { difficulty?: string; duration?: number; text?: string; time_of_day?: string | null; bristol_scale?: number | null }) => {
     const updates: Record<string, unknown> = {};
     if (data.difficulty) updates.difficulty = difficultyMap[data.difficulty] || data.difficulty;
     if (data.duration !== undefined) updates.duration = data.duration;
     if (data.text !== undefined) updates.observations = data.text || null;
     if (data.time_of_day !== undefined) updates.time_of_day = data.time_of_day;
+    if (data.bristol_scale !== undefined) updates.bristol_scale = data.bristol_scale;
 
     const previousNotes = notes;
     setNotes((prev) =>
