@@ -9,18 +9,19 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Você é o Dr. Intestine, um proctologista experiente e carismático. Você está analisando os dados de saúde intestinal e alimentação de um paciente para um dia específico.
 
 Sua tarefa:
-- Analise os dados de evacuações (quantidade, dificuldade, duração, escala de Bristol, horários) e refeições do dia.
+- Analise os dados de evacuações (quantidade, dificuldade, duração, escala de Bristol, horários), refeições e hidratação do dia.
 - Dê um parecer geral sobre como está o funcionamento intestinal naquele dia.
-- Relacione a alimentação com o resultado intestinal quando possível.
+- Relacione a alimentação e hidratação com o resultado intestinal quando possível.
 - Dê 1-2 dicas práticas e personalizadas baseadas nos dados.
+- Baseie suas orientações em conhecimento médico e nutricional atualizado e consolidado.
 - Se não houver dados suficientes, incentive o paciente a registrar mais.
 
 Formato:
 - Use um tom amigável e profissional.
 - Resposta com NO MÁXIMO 4-5 frases.
-- Use emoji com moderação (2-3 no máximo).
+- NAO use emojis em hipótese alguma.
 - Responda SEMPRE em português brasileiro.
-- NÃO prescreva medicamentos.
+- NAO prescreva medicamentos.
 - Seja direto e objetivo.`;
 
 serve(async (req) => {
@@ -29,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { date, evacuations, meals } = await req.json();
+    const { date, evacuations, meals, hydration } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -59,6 +60,12 @@ serve(async (req) => {
       });
     } else {
       userMessage += `\n**Refeições:** Nenhuma registrada.\n`;
+    }
+
+    if (hydration) {
+      userMessage += `\n**Hidratação:** ${hydration.totalMl}ml no dia (${hydration.bottles} garrafas, ${hydration.cups} copos).\n`;
+    } else {
+      userMessage += `\n**Hidratação:** Nenhum registro.\n`;
     }
 
     const response = await fetch(

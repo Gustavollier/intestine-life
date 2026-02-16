@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNotes, Evacuation } from "@/hooks/useNotes";
 import { useFoodDiary } from "@/hooks/useFoodDiary";
+import { useHydration } from "@/hooks/useHydration";
 import { NoteDialog } from "@/components/NoteDialog";
 import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, Minus } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,7 +24,7 @@ const difficultyColors: Record<string, string> = {
   "Difícil": "bg-red-100 text-red-600",
 };
 
-type TabType = "evacuations" | "food";
+type TabType = "evacuations" | "food" | "hydration";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("usuário");
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
+  const { addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(format(new Date(), "yyyy-MM-dd"));
@@ -69,8 +71,11 @@ export default function Dashboard() {
 
   const datesWithNotes = getDatesWithNotes();
   const datesWithFood = getDatesWithEntries();
+  const datesWithHydration = getDatesWithHydration();
   const selectedNotes = selectedDate ? getNotesForDate(selectedDate) : [];
   const selectedFoodEntries = selectedDate ? getEntriesForDate(selectedDate) : [];
+  const selectedHydrationEntries = selectedDate ? getHydrationForDate(selectedDate) : [];
+  const selectedHydrationTotal = selectedDate ? getTotalMlForDate(selectedDate) : 0;
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -81,7 +86,7 @@ export default function Dashboard() {
   }, [currentMonth]);
 
   const today = format(new Date(), "yyyy-MM-dd");
-  const isLoading = notesLoading || foodLoading;
+  const isLoading = notesLoading || foodLoading || hydrationLoading;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -126,10 +131,16 @@ export default function Dashboard() {
         description: e.description,
       }));
 
+      const hydrationData = selectedHydrationEntries.length > 0 ? {
+        totalMl: selectedHydrationTotal,
+        bottles: selectedHydrationEntries.filter(e => e.type === "bottle").length,
+        cups: selectedHydrationEntries.filter(e => e.type === "cup").length,
+      } : null;
+
       const formattedDate = format(parseISO(selectedDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
 
       const { data, error } = await supabase.functions.invoke("analyze-day", {
-        body: { date: formattedDate, evacuations, meals },
+        body: { date: formattedDate, evacuations, meals, hydration: hydrationData },
       });
 
       if (error) throw error;
@@ -218,6 +229,7 @@ export default function Dashboard() {
                     const dateStr = format(day, "yyyy-MM-dd");
                     const hasNotes = datesWithNotes.includes(dateStr);
                     const hasFood = datesWithFood.includes(dateStr);
+                    const hasHydration = datesWithHydration.includes(dateStr);
                     const isToday = dateStr === today;
                     const isSelected = dateStr === selectedDate;
 
@@ -230,7 +242,7 @@ export default function Dashboard() {
                             ? "bg-primary text-primary-foreground font-bold"
                             : isSelected
                             ? "bg-primary/20 text-primary font-semibold"
-                            : hasNotes || hasFood
+                            : hasNotes || hasFood || hasHydration
                             ? "bg-primary/10 text-foreground"
                             : "hover:bg-muted text-foreground"
                         }`}
@@ -239,6 +251,7 @@ export default function Dashboard() {
                         <div className="absolute bottom-0.5 flex gap-0.5">
                           {hasNotes && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                           {hasFood && <span className="w-1.5 h-1.5 rounded-full bg-accent-foreground/50" />}
+                          {hasHydration && <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
                         </div>
                       </button>
                     );
@@ -262,7 +275,7 @@ export default function Dashboard() {
             </div>
 
             {/* Analyze with Dr. Intestine button */}
-            {selectedDate && (selectedNotes.length > 0 || selectedFoodEntries.length > 0) && (
+            {selectedDate && (selectedNotes.length > 0 || selectedFoodEntries.length > 0 || selectedHydrationEntries.length > 0) && (
               <Button
                 onClick={handleAnalyzeDay}
                 disabled={analysisLoading}
@@ -336,6 +349,15 @@ export default function Dashboard() {
                   >
                     Refeições ({selectedFoodEntries.length})
                   </button>
+                  <button
+                    onClick={() => setActiveTab("hydration")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      activeTab === "hydration" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Droplets className="w-3 h-3 inline mr-1" />
+                    Água
+                  </button>
                 </div>
 
                 {isLoading ? (
@@ -393,7 +415,7 @@ export default function Dashboard() {
                       })
                     )}
                   </div>
-                ) : (
+                ) : activeTab === "food" ? (
                   <div className="space-y-3">
                     {selectedFoodEntries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-6">
@@ -427,6 +449,67 @@ export default function Dashboard() {
                           <p className="text-sm text-foreground whitespace-pre-wrap">{entry.description}</p>
                         </div>
                       ))
+                    )}
+                  </div>
+                ) : (
+                  /* Hydration Tab */
+                  <div className="space-y-4">
+                    {/* Total summary */}
+                    <div className="text-center py-3">
+                      <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full">
+                        <Droplets className="w-4 h-4" />
+                        <span className="text-lg font-bold">{selectedHydrationTotal}ml</span>
+                        <span className="text-xs">hoje</span>
+                      </div>
+                    </div>
+
+                    {/* Quick add buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => selectedDate && addHydration("bottle", selectedDate)}
+                        className="flex flex-col items-center gap-2 p-4 border border-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                      >
+                        <GlassWater className="w-8 h-8 text-blue-500" />
+                        <span className="text-xs font-medium text-foreground">Garrafa</span>
+                        <span className="text-[10px] text-muted-foreground">~700ml</span>
+                      </button>
+                      <button
+                        onClick={() => selectedDate && addHydration("cup", selectedDate)}
+                        className="flex flex-col items-center gap-2 p-4 border border-border rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                      >
+                        <GlassWater className="w-6 h-6 text-blue-400" />
+                        <span className="text-xs font-medium text-foreground">Copo</span>
+                        <span className="text-[10px] text-muted-foreground">~350ml</span>
+                      </button>
+                    </div>
+
+                    {/* Entries list */}
+                    {selectedHydrationEntries.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <Droplets className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                        <p className="text-sm text-muted-foreground text-center">
+                          Nenhum registro de hidratação neste dia.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedHydrationEntries.map((entry) => (
+                          <div key={entry.id} className="flex items-center justify-between border border-border rounded-xl px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <GlassWater className={`${entry.type === "bottle" ? "w-5 h-5 text-blue-500" : "w-4 h-4 text-blue-400"}`} />
+                              <span className="text-sm text-foreground">
+                                {entry.type === "bottle" ? "Garrafa" : "Copo"} — {entry.ml}ml
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => deleteHydration(entry.id)}
+                              className="p-1.5 hover:bg-destructive/10 rounded"
+                            >
+                              <Minus className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
