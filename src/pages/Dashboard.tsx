@@ -8,12 +8,12 @@ import { NoteDialog } from "@/components/NoteDialog";
 import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed } from "lucide-react";
-import { SwipeableCard } from "@/components/SwipeableCard";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2 } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
 
 const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -40,12 +40,16 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("evacuations");
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
 
+  // AI Analysis state
+  const [analysisText, setAnalysisText] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisDate, setAnalysisDate] = useState<string | null>(null);
+
   // Reopen NoteDialog when returning from Bristol Scale page
   useEffect(() => {
     if (location.state?.openNoteDialog && location.state?.date) {
       setSelectedDate(location.state.date);
       setDialogOpen(true);
-      // Clear the state so it doesn't reopen on re-render
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -99,6 +103,42 @@ export default function Dashboard() {
       await updateNote(editingNote.id, data);
     } else if (selectedDate) {
       await addNote({ ...data, date: selectedDate });
+    }
+  };
+
+  const handleAnalyzeDay = async () => {
+    if (!selectedDate) return;
+    setAnalysisLoading(true);
+    setAnalysisText(null);
+    setAnalysisDate(selectedDate);
+
+    try {
+      const evacuations = selectedNotes.map(n => ({
+        difficulty: difficultyDisplayMap[n.difficulty] || n.difficulty,
+        duration: n.duration,
+        bristol_scale: n.bristol_scale,
+        time_of_day: n.time_of_day,
+        observations: n.observations,
+      }));
+
+      const meals = selectedFoodEntries.map(e => ({
+        meal_type: mealTypeLabels[e.meal_type],
+        description: e.description,
+      }));
+
+      const formattedDate = format(parseISO(selectedDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+
+      const { data, error } = await supabase.functions.invoke("analyze-day", {
+        body: { date: formattedDate, evacuations, meals },
+      });
+
+      if (error) throw error;
+      setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+    } catch (e: any) {
+      console.error("Analysis error:", e);
+      setAnalysisText("Não foi possível gerar a análise. Tente novamente.");
+    } finally {
+      setAnalysisLoading(false);
     }
   };
 
@@ -220,6 +260,47 @@ export default function Dashboard() {
                 <UtensilsCrossed className="w-5 h-5" /> Refeição
               </Button>
             </div>
+
+            {/* Analyze with Dr. Intestine button */}
+            {selectedDate && (selectedNotes.length > 0 || selectedFoodEntries.length > 0) && (
+              <Button
+                onClick={handleAnalyzeDay}
+                disabled={analysisLoading}
+                variant="outline"
+                className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+              >
+                {analysisLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Bot className="w-5 h-5" />
+                )}
+                {analysisLoading ? "Analisando..." : "Analisar com Dr. Intestine"}
+              </Button>
+            )}
+
+            {/* AI Analysis Card */}
+            {analysisText && analysisDate === selectedDate && (
+              <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">Dr. Intestine</h3>
+                    <p className="text-xs text-muted-foreground">Análise do dia</p>
+                  </div>
+                  <button
+                    onClick={() => { setAnalysisText(null); setAnalysisDate(null); }}
+                    className="ml-auto p-1 hover:bg-muted rounded"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                <div className="text-sm text-foreground leading-relaxed prose prose-sm max-w-none">
+                  <ReactMarkdown>{analysisText}</ReactMarkdown>
+                </div>
+              </Card>
+            )}
           </div>
 
           {/* Side panel */}
@@ -323,18 +404,28 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       selectedFoodEntries.map((entry) => (
-                        <SwipeableCard
-                          key={entry.id}
-                          onEdit={() => { setEditingFoodEntry(entry); setFoodDialogOpen(true); }}
-                          onDelete={() => deleteEntry(entry.id)}
-                        >
+                        <div key={entry.id} className="border border-border rounded-xl p-3">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-medium bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
                               {mealTypeLabels[entry.meal_type]}
                             </span>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => { setEditingFoodEntry(entry); setFoodDialogOpen(true); }}
+                                className="p-1.5 hover:bg-muted rounded"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={() => deleteEntry(entry.id)}
+                                className="p-1.5 hover:bg-destructive/10 rounded"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-sm text-foreground whitespace-pre-wrap">{entry.description}</p>
-                        </SwipeableCard>
+                        </div>
                       ))
                     )}
                   </div>
