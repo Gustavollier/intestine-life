@@ -7,4 +7,5 @@ export interface Note {
   duration: number; // minutes
   text: string;
   time_of_day: string | null; // HH:MM
+  bristol_scale: number | null; // 1-7
 }

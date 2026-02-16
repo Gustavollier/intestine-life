@@ -9,6 +9,7 @@ import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed } from "lucide-react";
+import { SwipeableCard } from "@/components/SwipeableCard";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,7 +29,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("usuário");
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
-  const { addEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
+  const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(format(new Date(), "yyyy-MM-dd"));
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [foodDialogOpen, setFoodDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>("evacuations");
+  const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
 
   useEffect(() => {
     const getProfile = async () => {
@@ -81,7 +83,7 @@ export default function Dashboard() {
     setDialogOpen(true);
   };
 
-  const handleSaveNote = async (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null }) => {
+  const handleSaveNote = async (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null; bristol_scale: number | null }) => {
     if (editingNote) {
       await updateNote(editingNote.id, data);
     } else if (selectedDate) {
@@ -97,6 +99,7 @@ export default function Dashboard() {
         duration: editingNote.duration,
         text: editingNote.observations || "",
         time_of_day: editingNote.time_of_day || null,
+        bristol_scale: editingNote.bristol_scale ?? null,
       }
     : undefined;
 
@@ -274,6 +277,11 @@ export default function Dashboard() {
                                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[displayDifficulty] || ""}`}>
                                   {displayDifficulty}
                                 </span>
+                                {note.bristol_scale && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Bristol: {note.bristol_scale}
+                                  </span>
+                                )}
                                 <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                   <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration} min
                                 </span>
@@ -304,17 +312,18 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       selectedFoodEntries.map((entry) => (
-                        <div key={entry.id} className="border border-border rounded-xl p-3">
+                        <SwipeableCard
+                          key={entry.id}
+                          onEdit={() => { setEditingFoodEntry(entry); setFoodDialogOpen(true); }}
+                          onDelete={() => deleteEntry(entry.id)}
+                        >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-medium bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
                               {mealTypeLabels[entry.meal_type]}
                             </span>
-                            <button onClick={() => deleteEntry(entry.id)} className="p-1.5 hover:bg-destructive/10 rounded">
-                              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            </button>
                           </div>
                           <p className="text-sm text-foreground whitespace-pre-wrap">{entry.description}</p>
-                        </div>
+                        </SwipeableCard>
                       ))
                     )}
                   </div>
@@ -341,9 +350,11 @@ export default function Dashboard() {
           />
           <FoodDiaryDialog
             open={foodDialogOpen}
-            onOpenChange={setFoodDialogOpen}
+            onOpenChange={(open) => { setFoodDialogOpen(open); if (!open) setEditingFoodEntry(undefined); }}
             date={selectedDate}
+            entry={editingFoodEntry}
             onSave={addEntry}
+            onUpdate={(id, data) => updateEntry(id, data)}
           />
         </>
       )}

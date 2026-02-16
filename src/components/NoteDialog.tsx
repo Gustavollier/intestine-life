@@ -4,25 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Difficulty, Note } from "@/types/note";
-import { Clock, Plus, Minus, Save } from "lucide-react";
+import { Clock, Plus, Minus, Save, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface NoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: string;
   note?: Note;
-  onSave: (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null }) => void;
+  onSave: (data: { difficulty: Difficulty; duration: number; text: string; time_of_day: string | null; bristol_scale: number | null }) => void;
 }
 
 const difficulties: Difficulty[] = ["Fácil", "Normal", "Difícil"];
 
+const bristolEmojis: Record<number, string> = {
+  1: "🫘", 2: "🌰", 3: "🥜", 4: "🍌", 5: "🫛", 6: "☁️", 7: "💧",
+};
+
 export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialogProps) {
+  const navigate = useNavigate();
   const [difficulty, setDifficulty] = useState<Difficulty>("Fácil");
   const [duration, setDuration] = useState(5);
   const [text, setText] = useState("");
   const [timeOfDay, setTimeOfDay] = useState<string>(format(new Date(), "HH:mm"));
+  const [bristolScale, setBristolScale] = useState<number | null>(null);
 
   useEffect(() => {
     if (note) {
@@ -30,16 +37,18 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
       setDuration(note.duration);
       setText(note.text);
       setTimeOfDay(note.time_of_day || format(new Date(), "HH:mm"));
+      setBristolScale(note.bristol_scale);
     } else {
       setDifficulty("Fácil");
       setDuration(5);
       setText("");
       setTimeOfDay(format(new Date(), "HH:mm"));
+      setBristolScale(null);
     }
   }, [note, open]);
 
   const handleSave = () => {
-    onSave({ difficulty, duration, text, time_of_day: timeOfDay || null });
+    onSave({ difficulty, duration, text, time_of_day: timeOfDay || null, bristol_scale: bristolScale });
     onOpenChange(false);
   };
 
@@ -84,6 +93,36 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
                   }`}
                 >
                   {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bristol Scale */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium">Escala de Bristol (opcional)</p>
+              <button
+                type="button"
+                onClick={() => { onOpenChange(false); navigate("/bristol-scale"); }}
+                className="text-xs text-primary flex items-center gap-1 hover:underline"
+              >
+                <Info className="w-3 h-3" /> O que é?
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setBristolScale(bristolScale === n ? null : n)}
+                  className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-colors ${
+                    bristolScale === n
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  <span className="text-base">{bristolEmojis[n]}</span>
+                  {n}
                 </button>
               ))}
             </div>

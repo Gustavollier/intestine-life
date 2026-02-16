@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       evacuations: {
         Row: {
+          bristol_scale: number | null
           created_at: string
           day: string
           difficulty: Database["public"]["Enums"]["difficulty"]
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bristol_scale?: number | null
           created_at?: string
           day: string
           difficulty: Database["public"]["Enums"]["difficulty"]
@@ -36,6 +38,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bristol_scale?: number | null
           created_at?: string
           day?: string
           difficulty?: Database["public"]["Enums"]["difficulty"]

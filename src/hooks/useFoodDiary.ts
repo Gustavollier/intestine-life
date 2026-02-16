@@ -79,6 +79,23 @@ export function useFoodDiary() {
     }
   };
 
+  const updateEntry = async (id: string, data: { meal_type?: MealType; description?: string }) => {
+    const previous = entries;
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? { ...e, ...(data.meal_type && { meal_type: data.meal_type }), ...(data.description !== undefined && { description: data.description }) }
+          : e
+      )
+    );
+
+    const { error } = await supabase.from("food_diary").update(data).eq("id", id);
+    if (error) {
+      setEntries(previous);
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+    }
+  };
+
   const deleteEntry = async (id: string) => {
     const previous = entries;
     setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -97,6 +114,7 @@ export function useFoodDiary() {
     entries,
     loading,
     addEntry,
+    updateEntry,
     deleteEntry,
     getEntriesForDate,
     getDatesWithEntries,
