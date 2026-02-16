@@ -8,6 +8,13 @@ import { Clock, Plus, Minus, Save, Info } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import bristolType1 from "@/assets/bristol/type1.png";
+import bristolType2 from "@/assets/bristol/type2.png";
+import bristolType3 from "@/assets/bristol/type3.png";
+import bristolType4 from "@/assets/bristol/type4.png";
+import bristolType5 from "@/assets/bristol/type5.png";
+import bristolType6 from "@/assets/bristol/type6.png";
+import bristolType7 from "@/assets/bristol/type7.png";
 
 interface NoteDialogProps {
   open: boolean;
@@ -19,8 +26,9 @@ interface NoteDialogProps {
 
 const difficulties: Difficulty[] = ["Fácil", "Normal", "Difícil"];
 
-const bristolEmojis: Record<number, string> = {
-  1: "🫘", 2: "🌰", 3: "🥜", 4: "🍌", 5: "🫛", 6: "☁️", 7: "💧",
+const bristolImages: Record<number, string> = {
+  1: bristolType1, 2: bristolType2, 3: bristolType3, 4: bristolType4,
+  5: bristolType5, 6: bristolType6, 7: bristolType7,
 };
 
 export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialogProps) {
@@ -104,7 +112,7 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
               <p className="text-sm font-medium">Escala de Bristol (opcional)</p>
               <button
                 type="button"
-                onClick={() => { onOpenChange(false); navigate("/bristol-scale"); }}
+                onClick={() => { navigate("/bristol-scale", { state: { fromDialog: true, date } }); onOpenChange(false); }}
                 className="text-xs text-primary flex items-center gap-1 hover:underline"
               >
                 <Info className="w-3 h-3" /> O que é?
@@ -121,7 +129,7 @@ export function NoteDialog({ open, onOpenChange, date, note, onSave }: NoteDialo
                       : "bg-muted text-foreground hover:bg-muted/80"
                   }`}
                 >
-                  <span className="text-base">{bristolEmojis[n]}</span>
+                  <img src={bristolImages[n]} alt={`Tipo ${n}`} className="w-6 h-6 rounded object-cover" />
                   {n}
                 </button>
               ))}

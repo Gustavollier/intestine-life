@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNotes, Evacuation } from "@/hooks/useNotes";
@@ -27,6 +27,7 @@ type TabType = "evacuations" | "food";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState("usuário");
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
@@ -38,6 +39,16 @@ export default function Dashboard() {
   const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>("evacuations");
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
+
+  // Reopen NoteDialog when returning from Bristol Scale page
+  useEffect(() => {
+    if (location.state?.openNoteDialog && location.state?.date) {
+      setSelectedDate(location.state.date);
+      setDialogOpen(true);
+      // Clear the state so it doesn't reopen on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const getProfile = async () => {

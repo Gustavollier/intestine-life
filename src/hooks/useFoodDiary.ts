@@ -21,12 +21,24 @@ const mealTypeLabels: Record<MealType, string> = {
   other: "Outro",
 };
 
+// Module-level cache
+let cachedEntries: FoodEntry[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000;
+
 export function useFoodDiary() {
-  const [entries, setEntries] = useState<FoodEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState<FoodEntry[]>(cachedEntries || []);
+  const [loading, setLoading] = useState(!cachedEntries);
   const { toast } = useToast();
 
-  const fetchEntries = useCallback(async () => {
+  const fetchEntries = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && cachedEntries && (now - cacheTimestamp) < CACHE_TTL) {
+      setEntries(cachedEntries);
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -39,7 +51,10 @@ export function useFoodDiary() {
     if (error) {
       toast({ title: "Erro ao carregar diário alimentar", variant: "destructive" });
     } else {
-      setEntries((data as FoodEntry[]) || []);
+      const result = (data as FoodEntry[]) || [];
+      cachedEntries = result;
+      cacheTimestamp = Date.now();
+      setEntries(result);
     }
     setLoading(false);
   }, [toast]);
@@ -62,7 +77,7 @@ export function useFoodDiary() {
       created_at: new Date().toISOString(),
     };
 
-    setEntries((prev) => [optimistic, ...prev]);
+    setEntries((prev) => { const next = [optimistic, ...prev]; cachedEntries = next; return next; });
 
     const { error } = await supabase.from("food_diary").insert({
       user_id: user.id,
@@ -75,7 +90,7 @@ export function useFoodDiary() {
       setEntries((prev) => prev.filter((e) => e.id !== tempId));
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      fetchEntries();
+      fetchEntries(true);
     }
   };
 
