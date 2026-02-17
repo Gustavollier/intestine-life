@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Lock, Moon, Sun, Crown, Loader2, CreditCard } from "lucide-react";
+import StripeCheckout from "@/components/StripeCheckout";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export default function Profile() {
   const [checkingPlan, setCheckingPlan] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -119,19 +121,8 @@ export default function Profile() {
     }
   };
 
-  const handleUpgrade = async () => {
-    setCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (e) {
-      toast({ title: "Erro ao iniciar checkout", variant: "destructive" });
-    } finally {
-      setCheckoutLoading(false);
-    }
+  const handleUpgrade = () => {
+    setCheckoutOpen(true);
   };
 
   const handleManageSubscription = async () => {
@@ -206,8 +197,8 @@ export default function Profile() {
                   <li>✓ Relatórios detalhados</li>
                 </ul>
               </div>
-              <Button onClick={handleUpgrade} disabled={checkoutLoading} className="w-full rounded-xl">
-                {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
+              <Button onClick={handleUpgrade} className="w-full rounded-xl">
+                <Crown className="w-4 h-4 mr-2" />
                 Assinar Pro — R$2,00/mês
               </Button>
             </div>
@@ -267,6 +258,8 @@ export default function Profile() {
           </div>
         </Card>
       </main>
+
+      <StripeCheckout open={checkoutOpen} onOpenChange={setCheckoutOpen} />
     </div>
   );
 }
