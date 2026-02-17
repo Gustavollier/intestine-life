@@ -37,8 +37,8 @@ const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const difficultyColors: Record<string, string> = {
   "Fácil": "bg-primary/20 text-primary",
-  "Normal": "bg-yellow-100 text-yellow-700",
-  "Difícil": "bg-red-100 text-red-600",
+  "Normal": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  "Difícil": "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
 type TabType = "evacuations" | "food" | "hydration";

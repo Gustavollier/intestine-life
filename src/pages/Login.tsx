@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import intestineHero from "@/assets/intestine-hero.png";
 
-const Login = () => {
+const Login = forwardRef<HTMLDivElement>((_props, ref) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +37,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div ref={ref} className="flex min-h-screen">
       {/* Left side - Form */}
       <div className="flex w-full lg:w-1/2 items-center justify-center bg-background px-6">
         <Card className="w-full max-w-md shadow-lg border-0">
@@ -111,12 +111,13 @@ const Login = () => {
           alt="Intestine Life"
           className="w-[70%] max-w-lg object-contain drop-shadow-2xl"
           loading="eager"
-          fetchPriority="high"
           decoding="async"
         />
       </div>
     </div>
   );
-};
+});
+
+Login.displayName = "Login";
 
 export default Login;
