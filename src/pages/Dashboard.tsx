@@ -8,9 +8,10 @@ import { useHydration } from "@/hooks/useHydration";
 import { NoteDialog } from "@/components/NoteDialog";
 import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
 import { HydrationProgress } from "@/components/HydrationProgress";
+import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,7 +34,7 @@ export default function Dashboard() {
   const [username, setUsername] = useState("usuário");
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
-  const { addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
+  const { entries: allHydrationEntries, addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(format(new Date(), "yyyy-MM-dd"));
@@ -47,6 +48,13 @@ export default function Dashboard() {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisDate, setAnalysisDate] = useState<string | null>(null);
+  const [analysisType, setAnalysisType] = useState<"day" | "month">("day");
+
+  // Monthly analysis state
+  const [monthlyAnalysisText, setMonthlyAnalysisText] = useState<string | null>(null);
+  const [monthlyAnalysisLoading, setMonthlyAnalysisLoading] = useState(false);
+  const [monthlyAnalysisMonth, setMonthlyAnalysisMonth] = useState<string | null>(null);
+
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
     return saved ? parseInt(saved, 10) : 2000;
@@ -126,6 +134,7 @@ export default function Dashboard() {
     setAnalysisLoading(true);
     setAnalysisText(null);
     setAnalysisDate(selectedDate);
+    setAnalysisType("day");
 
     try {
       const evacuations = selectedNotes.map(n => ({
@@ -163,6 +172,78 @@ export default function Dashboard() {
     }
   };
 
+  const handleAnalyzeMonth = async () => {
+    const monthKey = format(currentMonth, "yyyy-MM");
+    setMonthlyAnalysisLoading(true);
+    setMonthlyAnalysisText(null);
+    setMonthlyAnalysisMonth(monthKey);
+
+    try {
+      const start = startOfMonth(currentMonth);
+      const end = endOfMonth(currentMonth);
+      const allDaysInMonth = eachDayOfInterval({ start, end });
+
+      // Gather all data for the month
+      let totalEvacuations = 0;
+      let totalMeals = 0;
+      let totalHydrationMl = 0;
+      let daysWithData = 0;
+      const difficultyCounts: Record<string, number> = {};
+      const bristolCounts: Record<number, number> = {};
+
+      for (const day of allDaysInMonth) {
+        const dateStr = format(day, "yyyy-MM-dd");
+        const dayNotes = getNotesForDate(dateStr);
+        const dayFood = getEntriesForDate(dateStr);
+        const dayHydration = getTotalMlForDate(dateStr);
+
+        if (dayNotes.length > 0 || dayFood.length > 0 || dayHydration > 0) {
+          daysWithData++;
+        }
+
+        totalEvacuations += dayNotes.length;
+        totalMeals += dayFood.length;
+        totalHydrationMl += dayHydration;
+
+        dayNotes.forEach(n => {
+          const diff = difficultyDisplayMap[n.difficulty] || n.difficulty;
+          difficultyCounts[diff] = (difficultyCounts[diff] || 0) + 1;
+          if (n.bristol_scale) {
+            bristolCounts[n.bristol_scale] = (bristolCounts[n.bristol_scale] || 0) + 1;
+          }
+        });
+      }
+
+      const formattedMonth = format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR });
+
+      const monthSummary = `Resumo do mês de ${formattedMonth}:
+- Dias com registros: ${daysWithData}/${allDaysInMonth.length}
+- Total de evacuações: ${totalEvacuations}
+- Dificuldade: ${Object.entries(difficultyCounts).map(([k, v]) => `${k}: ${v}`).join(", ") || "sem dados"}
+- Bristol: ${Object.entries(bristolCounts).map(([k, v]) => `tipo ${k}: ${v}x`).join(", ") || "sem dados"}
+- Total de refeições: ${totalMeals}
+- Hidratação total: ${totalHydrationMl}ml (média: ${daysWithData > 0 ? Math.round(totalHydrationMl / daysWithData) : 0}ml/dia)`;
+
+      const { data, error } = await supabase.functions.invoke("analyze-day", {
+        body: {
+          date: `mês de ${formattedMonth}`,
+          evacuations: [], // We send summary instead
+          meals: [],
+          hydration: daysWithData > 0 ? { totalMl: totalHydrationMl, bottles: 0, cups: 0 } : null,
+          monthSummary,
+        },
+      });
+
+      if (error) throw error;
+      setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+    } catch (e: any) {
+      console.error("Monthly analysis error:", e);
+      setMonthlyAnalysisText("Não foi possível gerar a análise mensal. Tente novamente.");
+    } finally {
+      setMonthlyAnalysisLoading(false);
+    }
+  };
+
   const editingNoteForDialog = editingNote
     ? {
         id: editingNote.id,
@@ -174,6 +255,8 @@ export default function Dashboard() {
         bristol_scale: editingNote.bristol_scale ?? null,
       }
     : undefined;
+
+  const hasDayData = selectedDate && (selectedNotes.length > 0 || selectedFoodEntries.length > 0 || selectedHydrationEntries.length > 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -284,25 +367,23 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            {/* Analyze with Dr. Intestine button */}
-            {selectedDate && (selectedNotes.length > 0 || selectedFoodEntries.length > 0 || selectedHydrationEntries.length > 0) && (
-              <Button
-                onClick={handleAnalyzeDay}
-                disabled={analysisLoading}
-                variant="outline"
-                className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
-              >
-                {analysisLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Bot className="w-5 h-5" />
-                )}
-                {analysisLoading ? "Analisando..." : "Analisar com Dr. Intestine"}
-              </Button>
-            )}
+            {/* Monthly Analysis Button */}
+            <Button
+              onClick={handleAnalyzeMonth}
+              disabled={monthlyAnalysisLoading}
+              variant="outline"
+              className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+            >
+              {monthlyAnalysisLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <CalendarDays className="w-5 h-5" />
+              )}
+              {monthlyAnalysisLoading ? "Analisando mês..." : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
+            </Button>
 
-            {/* AI Analysis Card */}
-            {analysisText && analysisDate === selectedDate && (
+            {/* Monthly AI Analysis Card */}
+            {monthlyAnalysisText && monthlyAnalysisMonth === format(currentMonth, "yyyy-MM") && (
               <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -310,20 +391,25 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground text-sm">Dr. Intestine</h3>
-                    <p className="text-xs text-muted-foreground">Análise do dia</p>
+                    <p className="text-xs text-muted-foreground">Análise mensal — {format(currentMonth, "MMMM yyyy", { locale: ptBR })}</p>
                   </div>
                   <button
-                    onClick={() => { setAnalysisText(null); setAnalysisDate(null); }}
+                    onClick={() => { setMonthlyAnalysisText(null); setMonthlyAnalysisMonth(null); }}
                     className="ml-auto p-1 hover:bg-muted rounded"
                   >
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
                 <div className="text-sm text-foreground leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown>{analysisText}</ReactMarkdown>
+                  <ReactMarkdown>{monthlyAnalysisText}</ReactMarkdown>
                 </div>
               </Card>
             )}
+
+            {/* Weekly Hydration Chart */}
+            <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
+              <WeeklyHydrationChart entries={allHydrationEntries} goalMl={hydrationGoal} />
+            </Card>
           </div>
 
           {/* Side panel */}
@@ -340,6 +426,45 @@ export default function Dashboard() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Analyze day button inside card */}
+                {hasDayData && (
+                  <Button
+                    onClick={handleAnalyzeDay}
+                    disabled={analysisLoading}
+                    variant="outline"
+                    size="sm"
+                    className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    {analysisLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Bot className="w-4 h-4" />
+                    )}
+                    {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
+                  </Button>
+                )}
+
+                {/* Day AI Analysis Card (inline) */}
+                {analysisText && analysisDate === selectedDate && (
+                  <div className="mb-4 p-3 border border-primary/20 rounded-xl bg-primary/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <Bot className="w-3 h-3 text-primary-foreground" />
+                      </div>
+                      <span className="font-semibold text-foreground text-xs">Dr. Intestine</span>
+                      <button
+                        onClick={() => { setAnalysisText(null); setAnalysisDate(null); }}
+                        className="ml-auto p-0.5 hover:bg-muted rounded"
+                      >
+                        <X className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    </div>
+                    <div className="text-xs text-foreground leading-relaxed prose prose-sm max-w-none">
+                      <ReactMarkdown>{analysisText}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tabs */}
                 <div className="flex gap-1 bg-muted rounded-xl p-1 mb-4">
