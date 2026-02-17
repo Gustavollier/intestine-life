@@ -11,7 +11,7 @@ import { HydrationProgress } from "@/components/HydrationProgress";
 import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
 import bristolType2 from "@/assets/bristol/type2.png";
@@ -287,14 +287,19 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Olá, {username}!</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
-          <LogOut className="w-4 h-4" /> Sair
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
+            <UserCircle className="w-5 h-5" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
+            <LogOut className="w-4 h-4" /> Sair
+          </Button>
+        </div>
       </header>
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal de constipação</h2>
+        <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Calendar column */}
