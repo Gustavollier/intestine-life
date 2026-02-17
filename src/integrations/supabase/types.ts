@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_usage: {
+        Row: {
+          analysis_type: string
+          created_at: string
+          id: string
+          reference_date: string
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          created_at?: string
+          id?: string
+          reference_date: string
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          reference_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_usage: {
         Row: {
           created_at: string
