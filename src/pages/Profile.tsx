@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, User, Lock, Moon, Sun } from "lucide-react";
+import { ArrowLeft, User, Lock, Moon, Sun, Crown, Loader2, CreditCard } from "lucide-react";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -26,16 +26,53 @@ export default function Profile() {
     return document.documentElement.classList.contains("dark");
   });
 
+  // Subscription state
+  const [plan, setPlan] = useState("free");
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [checkingPlan, setCheckingPlan] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
   useEffect(() => {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/"); return; }
       setEmail(user.email || "");
-      const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("name, plan").eq("user_id", user.id).maybeSingle();
       if (data?.name) setName(data.name);
+      if (data?.plan) setPlan(data.plan);
     };
     loadProfile();
   }, [navigate]);
+
+  // Check subscription status on mount and after checkout
+  useEffect(() => {
+    const checkSubscription = async () => {
+      setCheckingPlan(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("check-subscription");
+        if (!error && data) {
+          setPlan(data.plan || "free");
+          setSubscriptionEnd(data.subscription_end || null);
+        }
+      } catch (e) {
+        console.error("Error checking subscription:", e);
+      } finally {
+        setCheckingPlan(false);
+      }
+    };
+    checkSubscription();
+
+    // Show toast if coming back from checkout
+    const subParam = searchParams.get("subscription");
+    if (subParam === "success") {
+      toast({ title: "Assinatura ativada com sucesso! 🎉" });
+      // Re-check after a moment for Stripe to process
+      setTimeout(checkSubscription, 2000);
+    } else if (subParam === "canceled") {
+      toast({ title: "Checkout cancelado", variant: "destructive" });
+    }
+  }, [searchParams, toast]);
 
   const handleSaveName = async () => {
     setSaving(true);
@@ -65,7 +102,6 @@ export default function Profile() {
       toast({ title: "Erro ao alterar senha", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Senha alterada com sucesso!" });
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -83,6 +119,36 @@ export default function Profile() {
     }
   };
 
+  const handleUpgrade = async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e) {
+      toast({ title: "Erro ao iniciar checkout", variant: "destructive" });
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (e) {
+      toast({ title: "Erro ao abrir portal", variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b border-border px-6 py-3 flex items-center gap-3">
@@ -93,6 +159,61 @@ export default function Profile() {
       </header>
 
       <main className="max-w-lg mx-auto p-6 flex flex-col gap-6">
+        {/* Plan */}
+        <Card className={`p-6 rounded-3xl shadow-lg border-2 ${plan === "pro" ? "border-yellow-500/50 bg-yellow-500/5" : "border-primary/20"}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Crown className={`w-5 h-5 ${plan === "pro" ? "text-yellow-500" : "text-muted-foreground"}`} />
+              <h2 className="font-semibold text-foreground">Seu plano</h2>
+            </div>
+            {plan === "pro" && (
+              <span className="text-xs font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2.5 py-1 rounded-full">
+                PRO
+              </span>
+            )}
+          </div>
+
+          {checkingPlan ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Verificando plano...
+            </div>
+          ) : plan === "pro" ? (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                Você tem acesso a <strong>todas as funcionalidades</strong>, incluindo chat ilimitado e análises avançadas.
+              </p>
+              {subscriptionEnd && (
+                <p className="text-xs text-muted-foreground">
+                  Próxima renovação: {new Date(subscriptionEnd).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+              <Button variant="outline" onClick={handleManageSubscription} disabled={portalLoading} className="w-full rounded-xl">
+                {portalLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                Gerenciar assinatura
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Plano gratuito — 5 mensagens/dia no chat e análise diária básica.
+              </p>
+              <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">Desbloqueie com o Pro:</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>✓ Chat ilimitado com Dr. Intestine</li>
+                  <li>✓ Análise mensal com tendências</li>
+                  <li>✓ Relatórios detalhados</li>
+                </ul>
+              </div>
+              <Button onClick={handleUpgrade} disabled={checkoutLoading} className="w-full rounded-xl">
+                {checkoutLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Crown className="w-4 h-4 mr-2" />}
+                Assinar Pro — R$2,00/mês
+              </Button>
+            </div>
+          )}
+        </Card>
+
         {/* Name */}
         <Card className="p-6 border border-primary/20 rounded-3xl shadow-lg">
           <div className="flex items-center gap-2 mb-4">
