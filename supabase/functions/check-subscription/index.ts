@@ -55,7 +55,10 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const sub = subscriptions.data[0];
-      subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
+      const endTs = sub.current_period_end;
+      if (endTs && typeof endTs === "number" && endTs > 0) {
+        subscriptionEnd = new Date(endTs * 1000).toISOString();
+      }
     }
 
     // Sync plan to profiles table
