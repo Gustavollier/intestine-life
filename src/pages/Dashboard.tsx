@@ -11,7 +11,8 @@ import { HydrationProgress } from "@/components/HydrationProgress";
 import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
 import bristolType2 from "@/assets/bristol/type2.png";
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState("usuário");
+  const { toast } = useToast();
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
   const { entries: allHydrationEntries, addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
@@ -68,6 +70,11 @@ export default function Dashboard() {
   const [monthlyAnalysisText, setMonthlyAnalysisText] = useState<string | null>(null);
   const [monthlyAnalysisLoading, setMonthlyAnalysisLoading] = useState(false);
   const [monthlyAnalysisMonth, setMonthlyAnalysisMonth] = useState<string | null>(null);
+
+  // Plan & analysis limits
+  const [userPlan, setUserPlan] = useState("free");
+  const [dayAnalysisUsed, setDayAnalysisUsed] = useState<Set<string>>(new Set());
+  const [monthAnalysisUsed, setMonthAnalysisUsed] = useState<Set<string>>(new Set());
 
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
@@ -95,8 +102,25 @@ export default function Dashboard() {
         navigate("/");
         return;
       }
-      const { data } = await supabase.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("name, plan").eq("user_id", user.id).maybeSingle();
       if (data?.name) setUsername(data.name.split(" ")[0]);
+      if (data?.plan) setUserPlan(data.plan);
+
+      // Load analysis usage for free plan limits
+      const { data: usageData } = await supabase
+        .from("analysis_usage")
+        .select("analysis_type, reference_date")
+        .eq("user_id", user.id);
+      if (usageData) {
+        const days = new Set<string>();
+        const months = new Set<string>();
+        usageData.forEach((u: any) => {
+          if (u.analysis_type === "day") days.add(u.reference_date);
+          if (u.analysis_type === "month") months.add(u.reference_date);
+        });
+        setDayAnalysisUsed(days);
+        setMonthAnalysisUsed(months);
+      }
     };
     getProfile();
   }, [navigate]);
@@ -143,8 +167,27 @@ export default function Dashboard() {
     }
   };
 
+  const recordAnalysisUsage = async (type: "day" | "month", refDate: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("analysis_usage").insert({
+      user_id: user.id,
+      analysis_type: type,
+      reference_date: refDate,
+    });
+    if (type === "day") setDayAnalysisUsed(prev => new Set(prev).add(refDate));
+    else setMonthAnalysisUsed(prev => new Set(prev).add(refDate));
+  };
+
   const handleAnalyzeDay = async () => {
     if (!selectedDate) return;
+
+    // Free plan: once per day per date
+    if (userPlan === "free" && dayAnalysisUsed.has(selectedDate)) {
+      toast({ title: "Limite atingido", description: "No plano gratuito, a análise diária pode ser usada 1x por dia. Assine o Pro para análises ilimitadas.", variant: "destructive" });
+      return;
+    }
+
     setAnalysisLoading(true);
     setAnalysisText(null);
     setAnalysisDate(selectedDate);
@@ -178,6 +221,11 @@ export default function Dashboard() {
 
       if (error) throw error;
       setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+
+      // Record usage for free plan
+      if (userPlan === "free") {
+        await recordAnalysisUsage("day", selectedDate);
+      }
     } catch (e: any) {
       console.error("Analysis error:", e);
       setAnalysisText("Não foi possível gerar a análise. Tente novamente.");
@@ -188,6 +236,13 @@ export default function Dashboard() {
 
   const handleAnalyzeMonth = async () => {
     const monthKey = format(currentMonth, "yyyy-MM");
+
+    // Free plan: once per month
+    if (userPlan === "free" && monthAnalysisUsed.has(monthKey)) {
+      toast({ title: "Limite atingido", description: "No plano gratuito, a análise mensal pode ser usada 1x por mês. Assine o Pro para análises ilimitadas.", variant: "destructive" });
+      return;
+    }
+
     setMonthlyAnalysisLoading(true);
     setMonthlyAnalysisText(null);
     setMonthlyAnalysisMonth(monthKey);
@@ -197,7 +252,6 @@ export default function Dashboard() {
       const end = endOfMonth(currentMonth);
       const allDaysInMonth = eachDayOfInterval({ start, end });
 
-      // Gather all data for the month
       let totalEvacuations = 0;
       let totalMeals = 0;
       let totalHydrationMl = 0;
@@ -241,7 +295,7 @@ export default function Dashboard() {
       const { data, error } = await supabase.functions.invoke("analyze-day", {
         body: {
           date: `mês de ${formattedMonth}`,
-          evacuations: [], // We send summary instead
+          evacuations: [],
           meals: [],
           hydration: daysWithData > 0 ? { totalMl: totalHydrationMl, bottles: 0, cups: 0 } : null,
           monthSummary,
@@ -250,6 +304,11 @@ export default function Dashboard() {
 
       if (error) throw error;
       setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+
+      // Record usage for free plan
+      if (userPlan === "free") {
+        await recordAnalysisUsage("month", monthKey);
+      }
     } catch (e: any) {
       console.error("Monthly analysis error:", e);
       setMonthlyAnalysisText("Não foi possível gerar a análise mensal. Tente novamente.");
