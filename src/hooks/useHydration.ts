@@ -47,7 +47,7 @@ export function useHydration() {
       .from("hydration" as any)
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false }) as any);
+      .order("created_at", { ascending: true }) as any);
 
     if (error) {
       toast({ title: "Erro ao carregar hidratação", variant: "destructive" });
@@ -79,7 +79,7 @@ export function useHydration() {
       created_at: new Date().toISOString(),
     };
 
-    setEntries((prev) => { const next = [optimistic, ...prev]; cachedEntries = next; return next; });
+    setEntries((prev) => { const next = [...prev, optimistic]; cachedEntries = next; return next; });
 
     const { error } = await (supabase.from("hydration" as any).insert({
       user_id: user.id,

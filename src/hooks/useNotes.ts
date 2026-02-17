@@ -53,7 +53,7 @@ export function useNotes() {
       .from("evacuations")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       toast({ title: "Erro ao carregar registros", variant: "destructive" });
@@ -88,7 +88,7 @@ export function useNotes() {
       created_at: new Date().toISOString(),
     };
 
-    setNotes((prev) => { const next = [optimisticNote, ...prev]; cachedNotes = next; return next; });
+    setNotes((prev) => { const next = [...prev, optimisticNote]; cachedNotes = next; return next; });
 
     const { error } = await supabase.from("evacuations").insert({
       user_id: user.id,
