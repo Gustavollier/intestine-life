@@ -30,7 +30,7 @@ serve(async (req) => {
   }
 
   try {
-    const { date, evacuations, meals, hydration } = await req.json();
+    const { date, evacuations, meals, hydration, monthSummary } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -38,7 +38,13 @@ serve(async (req) => {
     }
 
     // Build context message from user data
-    let userMessage = `Analise meus dados do dia ${date}:\n\n`;
+    let userMessage = "";
+
+    // If monthSummary is provided, use it for monthly analysis
+    if (monthSummary) {
+      userMessage = `Analise meus dados do ${date}:\n\n${monthSummary}\n\nDê um parecer geral sobre o mês e tendências observadas.`;
+    } else {
+      userMessage = `Analise meus dados do dia ${date}:\n\n`;
 
     if (evacuations && evacuations.length > 0) {
       userMessage += `**Evacuações (${evacuations.length}):**\n`;
@@ -67,6 +73,7 @@ serve(async (req) => {
     } else {
       userMessage += `\n**Hidratação:** Nenhum registro.\n`;
     }
+    } // close else block
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
