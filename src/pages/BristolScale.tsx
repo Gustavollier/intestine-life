@@ -20,19 +20,19 @@ const bristolTypes = [
     type: 1,
     title: "Tipo 1 — Caroços duros separados",
     description: "Fezes em formato de pequenas bolinhas duras, semelhantes a nozes. Difíceis de evacuar. Indicam constipação severa — as fezes ficaram muito tempo no intestino.",
-    color: "bg-red-100 text-red-700 border-red-200",
+    color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   },
   {
     type: 2,
     title: "Tipo 2 — Forma de salsicha com caroços",
     description: "Formato alongado, mas com superfície irregular e grumosa. Também indica constipação, porém menos severa que o tipo 1.",
-    color: "bg-orange-100 text-orange-700 border-orange-200",
+    color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
   },
   {
     type: 3,
     title: "Tipo 3 — Salsicha com rachaduras",
     description: "Formato de salsicha com rachaduras na superfície. Considerado normal, mas pode indicar leve desidratação.",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    color: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
   },
   {
     type: 4,
@@ -44,19 +44,19 @@ const bristolTypes = [
     type: 5,
     title: "Tipo 5 — Pedaços macios com bordas definidas",
     description: "Pedaços macios e separados, com bordas bem definidas. Fáceis de evacuar. Pode indicar falta de fibras na dieta.",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    color: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
   },
   {
     type: 6,
     title: "Tipo 6 — Pedaços fofos e pastosos",
     description: "Fezes pastosas, sem forma definida, com bordas irregulares. Pode indicar diarreia leve ou trânsito intestinal acelerado.",
-    color: "bg-orange-100 text-orange-700 border-orange-200",
+    color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
   },
   {
     type: 7,
     title: "Tipo 7 — Totalmente líquido",
     description: "Completamente líquido, sem pedaços sólidos. Indica diarreia. Pode ser causado por infecção, intolerância alimentar ou outros fatores.",
-    color: "bg-red-100 text-red-700 border-red-200",
+    color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   },
 ];
 

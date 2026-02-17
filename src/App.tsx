@@ -38,7 +38,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return authenticated ? <>{children}</> : <Navigate to="/" replace />;
 };
 
-const App = () => (
+const App = () => {
+  // Restore dark mode from localStorage on initial load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -57,6 +68,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
