@@ -37,16 +37,18 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    const origin = req.headers.get("origin") || "http://localhost:5173";
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: PRO_PRICE_ID, quantity: 1 }],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/profile?subscription=success`,
-      cancel_url: `${req.headers.get("origin")}/profile?subscription=canceled`,
+      ui_mode: "embedded",
+      return_url: `${origin}/profile?subscription=success`,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
