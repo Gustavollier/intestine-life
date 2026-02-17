@@ -13,10 +13,24 @@ import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays } from "lucide-react";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
+import bristolType1 from "@/assets/bristol/type1.png";
+import bristolType2 from "@/assets/bristol/type2.png";
+import bristolType3 from "@/assets/bristol/type3.png";
+import bristolType4 from "@/assets/bristol/type4.png";
+import bristolType5 from "@/assets/bristol/type5.png";
+import bristolType6 from "@/assets/bristol/type6.png";
+import bristolType7 from "@/assets/bristol/type7.png";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
+
+// Preload Bristol scale images so they're cached before the modal opens
+const bristolImages = [bristolType1, bristolType2, bristolType3, bristolType4, bristolType5, bristolType6, bristolType7];
+bristolImages.forEach((src) => {
+  const img = new Image();
+  img.src = src;
+});
 
 const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
