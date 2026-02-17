@@ -28,14 +28,17 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, userName } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    // Inject current date/time into system prompt so the AI always knows "today"
+    // Inject current date/time and user name into system prompt
     const now = new Date();
     const dateStr = now.toLocaleDateString("pt-BR", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/Sao_Paulo" });
     const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
-    const dateContext = `\n\nData e hora atuais: ${dateStr}, ${timeStr} (horário de Brasília).`;
+    let dateContext = `\n\nData e hora atuais: ${dateStr}, ${timeStr} (horário de Brasília).`;
+    if (userName) {
+      dateContext += `\nO nome do paciente é: ${userName}. Use o nome dele nas respostas quando fizer sentido, de forma natural.`;
+    }
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
