@@ -353,19 +353,6 @@ export default function Dashboard() {
               )}
             </Card>
 
-            <div className="flex gap-3">
-              <Button onClick={handleNewNote} className="flex-1 h-12 rounded-xl text-base font-semibold gap-2">
-                <Plus className="w-5 h-5" /> Evacuação
-              </Button>
-              <Button
-                onClick={() => selectedDate && setFoodDialogOpen(true)}
-                variant="outline"
-                className="flex-1 h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                disabled={!selectedDate}
-              >
-                <UtensilsCrossed className="w-5 h-5" /> Refeição
-              </Button>
-            </div>
 
             {/* Monthly Analysis Button */}
             <Button
@@ -506,6 +493,9 @@ export default function Dashboard() {
                   </div>
                 ) : activeTab === "evacuations" ? (
                   <div className="space-y-3">
+                    <Button onClick={handleNewNote} className="w-full h-10 rounded-xl text-sm font-semibold gap-2">
+                      <Plus className="w-4 h-4" /> Nova Evacuação
+                    </Button>
                     {selectedNotes.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-6">
                         <img src={washHandsSvg} alt="Ilustração de saúde" className="w-36 h-auto opacity-50 mb-3" />
@@ -552,6 +542,13 @@ export default function Dashboard() {
                   </div>
                 ) : activeTab === "food" ? (
                   <div className="space-y-3">
+                    <Button
+                      onClick={() => setFoodDialogOpen(true)}
+                      variant="outline"
+                      className="w-full h-10 rounded-xl text-sm font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      <Plus className="w-4 h-4" /> Nova Refeição
+                    </Button>
                     {selectedFoodEntries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-6">
                         <UtensilsCrossed className="w-12 h-12 text-muted-foreground/30 mb-3" />
