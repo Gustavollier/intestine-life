@@ -46,7 +46,7 @@ export function useFoodDiary() {
       .from("food_diary")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       toast({ title: "Erro ao carregar diário alimentar", variant: "destructive" });
@@ -77,7 +77,7 @@ export function useFoodDiary() {
       created_at: new Date().toISOString(),
     };
 
-    setEntries((prev) => { const next = [optimistic, ...prev]; cachedEntries = next; return next; });
+    setEntries((prev) => { const next = [...prev, optimistic]; cachedEntries = next; return next; });
 
     const { error } = await supabase.from("food_diary").insert({
       user_id: user.id,
