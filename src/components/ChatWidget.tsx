@@ -34,7 +34,7 @@ export function ChatWidget() {
         .select("name, plan")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (profile?.name) setUserName(profile.name);
+      if (profile?.name) setUserName(profile.name.split(" ")[0]);
       if (profile?.plan) setUserPlan(profile.plan);
 
       // Fetch today's chat usage

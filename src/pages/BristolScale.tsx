@@ -38,7 +38,7 @@ const bristolTypes = [
     type: 4,
     title: "Tipo 4 — Salsicha lisa e macia",
     description: "Formato de salsicha ou cobra, lisa e macia. Este é o tipo ideal! Indica boa hidratação e trânsito intestinal saudável.",
-    color: "bg-primary/10 text-primary border-primary/20",
+    color: "bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/40",
   },
   {
     type: 5,
