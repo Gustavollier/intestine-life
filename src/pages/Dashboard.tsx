@@ -57,7 +57,7 @@ export default function Dashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [foodDialogOpen, setFoodDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
-  const [activeTab, setActiveTab] = useState<TabType>("evacuations");
+  const [activeTab, setActiveTab] = useState<TabType>("food");
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
 
   // AI Analysis state
@@ -183,10 +183,8 @@ export default function Dashboard() {
     if (!selectedDate) return;
 
     // Free plan: once per day per date
-    if (userPlan === "free" && dayAnalysisUsed.has(selectedDate)) {
-      toast({ title: "Limite atingido", description: "No plano gratuito, a análise diária pode ser usada 1x por dia. Assine o Pro para análises ilimitadas.", variant: "destructive" });
-      return;
-    }
+    const isDayLocked = userPlan === "free" && dayAnalysisUsed.has(selectedDate);
+    if (isDayLocked) return;
 
     setAnalysisLoading(true);
     setAnalysisText(null);
@@ -238,10 +236,8 @@ export default function Dashboard() {
     const monthKey = format(currentMonth, "yyyy-MM");
 
     // Free plan: once per month
-    if (userPlan === "free" && monthAnalysisUsed.has(monthKey)) {
-      toast({ title: "Limite atingido", description: "No plano gratuito, a análise mensal pode ser usada 1x por mês. Assine o Pro para análises ilimitadas.", variant: "destructive" });
-      return;
-    }
+    const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
+    if (isMonthLocked) return;
 
     setMonthlyAnalysisLoading(true);
     setMonthlyAnalysisText(null);
@@ -433,19 +429,31 @@ export default function Dashboard() {
 
 
             {/* Monthly Analysis Button */}
-            <Button
-              onClick={handleAnalyzeMonth}
-              disabled={monthlyAnalysisLoading}
-              variant="outline"
-              className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
-            >
-              {monthlyAnalysisLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <CalendarDays className="w-5 h-5" />
-              )}
-              {monthlyAnalysisLoading ? "Analisando mês..." : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
-            </Button>
+            {(() => {
+              const monthKey = format(currentMonth, "yyyy-MM");
+              const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
+              return (
+                <Button
+                  onClick={handleAnalyzeMonth}
+                  disabled={monthlyAnalysisLoading || isMonthLocked}
+                  variant="outline"
+                  className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+                >
+                  {monthlyAnalysisLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : isMonthLocked ? (
+                    <Lock className="w-5 h-5" />
+                  ) : (
+                    <CalendarDays className="w-5 h-5" />
+                  )}
+                  {monthlyAnalysisLoading
+                    ? "Analisando mês..."
+                    : isMonthLocked
+                    ? "Análise mensal já utilizada"
+                    : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
+                </Button>
+              );
+            })()}
 
             {/* Monthly AI Analysis Card */}
             {monthlyAnalysisText && monthlyAnalysisMonth === format(currentMonth, "yyyy-MM") && (
@@ -470,15 +478,10 @@ export default function Dashboard() {
                 </div>
               </Card>
             )}
-
-            {/* Weekly Hydration Chart */}
-            <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
-              <WeeklyHydrationChart entries={allHydrationEntries} goalMl={hydrationGoal} />
-            </Card>
           </div>
 
-          {/* Side panel */}
-          <Card className="w-full lg:w-96 p-5 border border-primary/20 rounded-3xl shadow-lg">
+          {/* Side panel - show before hydration chart on mobile */}
+          <Card className="w-full lg:w-96 p-5 border border-primary/20 rounded-3xl shadow-lg order-first lg:order-none">
             {selectedDate ? (
               <>
                 <div className="flex items-start justify-between mb-1">
@@ -493,22 +496,31 @@ export default function Dashboard() {
                 </div>
 
                 {/* Analyze day button inside card */}
-                {hasDayData && (
-                  <Button
-                    onClick={handleAnalyzeDay}
-                    disabled={analysisLoading}
-                    variant="outline"
-                    size="sm"
-                    className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                  >
-                    {analysisLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Bot className="w-4 h-4" />
-                    )}
-                    {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
-                  </Button>
-                )}
+                {hasDayData && (() => {
+                  const isDayLocked = userPlan === "free" && selectedDate && dayAnalysisUsed.has(selectedDate);
+                  return (
+                    <Button
+                      onClick={handleAnalyzeDay}
+                      disabled={analysisLoading || !!isDayLocked}
+                      variant="outline"
+                      size="sm"
+                      className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      {analysisLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isDayLocked ? (
+                        <Lock className="w-4 h-4" />
+                      ) : (
+                        <Bot className="w-4 h-4" />
+                      )}
+                      {analysisLoading
+                        ? "Analisando..."
+                        : isDayLocked
+                        ? "Análise diária já utilizada"
+                        : "Analisar dia com Dr. Intestine"}
+                    </Button>
+                  );
+                })()}
 
                 {/* Day AI Analysis Card (inline) */}
                 {analysisText && analysisDate === selectedDate && (
@@ -531,16 +543,8 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Tabs */}
+                {/* Tabs - Order: Refeições, Água, Evacuações */}
                 <div className="flex gap-1 bg-muted rounded-xl p-1 mb-4">
-                  <button
-                    onClick={() => setActiveTab("evacuations")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                      activeTab === "evacuations" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Evacuações ({selectedNotes.length})
-                  </button>
                   <button
                     onClick={() => setActiveTab("food")}
                     className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
@@ -558,6 +562,14 @@ export default function Dashboard() {
                     <Droplets className="w-3 h-3 inline mr-1" />
                     Água
                   </button>
+                  <button
+                    onClick={() => setActiveTab("evacuations")}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      activeTab === "evacuations" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    Evacuações ({selectedNotes.length})
+                  </button>
                 </div>
 
                 {isLoading ? (
@@ -568,55 +580,6 @@ export default function Dashboard() {
                         <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
                       </svg>
                     </div>
-                  </div>
-                ) : activeTab === "evacuations" ? (
-                  <div className="space-y-3">
-                    <Button onClick={handleNewNote} className="w-full h-10 rounded-xl text-sm font-semibold gap-2">
-                      <Plus className="w-4 h-4" /> Nova Evacuação
-                    </Button>
-                    {selectedNotes.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-6">
-                        <img src={washHandsSvg} alt="Ilustração de saúde" className="w-36 h-auto opacity-50 mb-3" />
-                        <p className="text-sm text-muted-foreground text-center">
-                          Nenhum registro de evacuação para este dia.
-                        </p>
-                      </div>
-                    ) : (
-                      selectedNotes.map((note, idx) => {
-                        const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
-                        return (
-                          <div key={note.id} className="border border-border rounded-xl p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                                  #{idx + 1}
-                                </span>
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[displayDifficulty] || ""}`}>
-                                  {displayDifficulty}
-                                </span>
-                                {note.bristol_scale && (
-                                  <span className="text-xs text-muted-foreground">
-                                    Bristol: {note.bristol_scale}
-                                  </span>
-                                )}
-                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                                  <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration} min
-                                </span>
-                              </div>
-                              <div className="flex gap-1">
-                                <button onClick={() => handleEditNote(note)} className="p-1.5 hover:bg-muted rounded">
-                                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                                </button>
-                                <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-destructive/10 rounded">
-                                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                                </button>
-                              </div>
-                            </div>
-                            {note.observations && <p className="text-sm text-foreground">{note.observations}</p>}
-                          </div>
-                        );
-                      })
-                    )}
                   </div>
                 ) : activeTab === "food" ? (
                   <div className="space-y-3">
@@ -661,7 +624,7 @@ export default function Dashboard() {
                       ))
                     )}
                   </div>
-                ) : (
+                ) : activeTab === "hydration" ? (
                   /* Hydration Tab */
                   <div className="space-y-4">
                     {/* Circular progress */}
@@ -720,6 +683,56 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
+                ) : (
+                  /* Evacuations Tab (last) */
+                  <div className="space-y-3">
+                    <Button onClick={handleNewNote} className="w-full h-10 rounded-xl text-sm font-semibold gap-2">
+                      <Plus className="w-4 h-4" /> Nova Evacuação
+                    </Button>
+                    {selectedNotes.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <img src={washHandsSvg} alt="Ilustração de saúde" className="w-36 h-auto opacity-50 mb-3" />
+                        <p className="text-sm text-muted-foreground text-center">
+                          Nenhum registro de evacuação para este dia.
+                        </p>
+                      </div>
+                    ) : (
+                      selectedNotes.map((note, idx) => {
+                        const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
+                        return (
+                          <div key={note.id} className="border border-border rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                  #{idx + 1}
+                                </span>
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[displayDifficulty] || ""}`}>
+                                  {displayDifficulty}
+                                </span>
+                                {note.bristol_scale && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Bristol: {note.bristol_scale}
+                                  </span>
+                                )}
+                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                  <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration} min
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
+                                <button onClick={() => handleEditNote(note)} className="p-1.5 hover:bg-muted rounded">
+                                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                                </button>
+                                <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-destructive/10 rounded">
+                                  <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                </button>
+                              </div>
+                            </div>
+                            {note.observations && <p className="text-sm text-foreground">{note.observations}</p>}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 )}
               </>
             ) : (
@@ -728,6 +741,18 @@ export default function Dashboard() {
                 <p className="text-sm font-medium">Selecione um dia</p>
               </div>
             )}
+          </Card>
+
+          {/* Weekly Hydration Chart - below side panel on mobile */}
+          <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg w-full lg:hidden">
+            <WeeklyHydrationChart entries={allHydrationEntries} goalMl={hydrationGoal} />
+          </Card>
+        </div>
+
+        {/* Weekly Hydration Chart - desktop only, below calendar */}
+        <div className="hidden lg:block mt-6">
+          <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
+            <WeeklyHydrationChart entries={allHydrationEntries} goalMl={hydrationGoal} />
           </Card>
         </div>
       </main>
