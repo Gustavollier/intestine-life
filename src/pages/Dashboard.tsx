@@ -435,27 +435,32 @@ export default function Dashboard() {
             {(() => {
               const monthKey = format(currentMonth, "yyyy-MM");
               const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
-              return (
-                <Button
-                  onClick={handleAnalyzeMonth}
-                  disabled={monthlyAnalysisLoading || isMonthLocked}
-                  variant="outline"
-                  className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
-                >
-                  {monthlyAnalysisLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : isMonthLocked ? (
+              return isMonthLocked ? (
+                  <Button
+                    onClick={() => navigate("/profile")}
+                    variant="outline"
+                    className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+                  >
                     <Lock className="w-5 h-5" />
-                  ) : (
-                    <CalendarDays className="w-5 h-5" />
-                  )}
-                  {monthlyAnalysisLoading
-                    ? "Analisando mês..."
-                    : isMonthLocked
-                    ? "Análise mensal já utilizada"
-                    : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
-                </Button>
-              );
+                    Assine o PRO para mais análises
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleAnalyzeMonth}
+                    disabled={monthlyAnalysisLoading}
+                    variant="outline"
+                    className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+                  >
+                    {monthlyAnalysisLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <CalendarDays className="w-5 h-5" />
+                    )}
+                    {monthlyAnalysisLoading
+                      ? "Analisando mês..."
+                      : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
+                  </Button>
+                );
             })()}
 
             {/* Monthly AI Analysis Card */}
@@ -501,28 +506,32 @@ export default function Dashboard() {
                 {/* Analyze day button inside card */}
                 {hasDayData && (() => {
                   const isDayLocked = userPlan === "free" && selectedDate && dayAnalysisUsed.has(selectedDate);
-                  return (
-                    <Button
-                      onClick={handleAnalyzeDay}
-                      disabled={analysisLoading || !!isDayLocked}
-                      variant="outline"
-                      size="sm"
-                      className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                    >
-                      {analysisLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : isDayLocked ? (
+                  return isDayLocked ? (
+                      <Button
+                        onClick={() => navigate("/profile")}
+                        variant="outline"
+                        size="sm"
+                        className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                      >
                         <Lock className="w-4 h-4" />
-                      ) : (
-                        <Bot className="w-4 h-4" />
-                      )}
-                      {analysisLoading
-                        ? "Analisando..."
-                        : isDayLocked
-                        ? "Análise diária já utilizada"
-                        : "Analisar dia com Dr. Intestine"}
-                    </Button>
-                  );
+                        Assine o PRO para mais análises
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleAnalyzeDay}
+                        disabled={analysisLoading}
+                        variant="outline"
+                        size="sm"
+                        className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        {analysisLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Bot className="w-4 h-4" />
+                        )}
+                        {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
+                      </Button>
+                    );
                 })()}
 
                 {/* Day AI Analysis Card (inline) */}
@@ -586,11 +595,7 @@ export default function Dashboard() {
                   </div>
                 ) : activeTab === "food" ? (
                   <div className="space-y-3">
-                    <Button
-                      onClick={() => setFoodDialogOpen(true)}
-                      variant="outline"
-                      className="w-full h-10 rounded-xl text-sm font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                    >
+                    <Button onClick={() => setFoodDialogOpen(true)} className="w-full h-10 rounded-xl text-sm font-semibold gap-2">
                       <Plus className="w-4 h-4" /> Nova Refeição
                     </Button>
                     {selectedFoodEntries.length === 0 ? (
@@ -713,8 +718,9 @@ export default function Dashboard() {
                                   {displayDifficulty}
                                 </span>
                                 {note.bristol_scale && (
-                                  <span className="text-xs text-muted-foreground">
-                                    Bristol: {note.bristol_scale}
+                                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <img src={bristolImages[note.bristol_scale - 1]} alt={`Bristol ${note.bristol_scale}`} className="w-5 h-5 object-contain" />
+                                    Tipo {note.bristol_scale}
                                   </span>
                                 )}
                                 <span className="text-xs text-muted-foreground flex items-center gap-0.5">
