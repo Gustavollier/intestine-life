@@ -76,7 +76,8 @@ export default function Dashboard() {
 
   // Plan & analysis limits
   const [userPlan, setUserPlan] = useState("free");
-  const [dayAnalysisUsed, setDayAnalysisUsed] = useState<Set<string>>(new Set());
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [dayAnalysisCount, setDayAnalysisCount] = useState<Record<string, number>>({});
   const [monthAnalysisUsed, setMonthAnalysisUsed] = useState<Set<string>>(new Set());
 
   const [hydrationGoal, setHydrationGoal] = useState(() => {
@@ -115,15 +116,18 @@ export default function Dashboard() {
         .select("analysis_type, reference_date")
         .eq("user_id", user.id);
       if (usageData) {
-        const days = new Set<string>();
+        const dayCounts: Record<string, number> = {};
         const months = new Set<string>();
         usageData.forEach((u: any) => {
-          if (u.analysis_type === "day") days.add(u.reference_date);
+          if (u.analysis_type === "day") {
+            dayCounts[u.reference_date] = (dayCounts[u.reference_date] || 0) + 1;
+          }
           if (u.analysis_type === "month") months.add(u.reference_date);
         });
-        setDayAnalysisUsed(days);
+        setDayAnalysisCount(dayCounts);
         setMonthAnalysisUsed(months);
       }
+      setProfileLoaded(true);
     };
     getProfile();
   }, [navigate]);
@@ -178,15 +182,15 @@ export default function Dashboard() {
       analysis_type: type,
       reference_date: refDate,
     });
-    if (type === "day") setDayAnalysisUsed(prev => new Set(prev).add(refDate));
+    if (type === "day") setDayAnalysisCount(prev => ({ ...prev, [refDate]: (prev[refDate] || 0) + 1 }));
     else setMonthAnalysisUsed(prev => new Set(prev).add(refDate));
   };
 
   const handleAnalyzeDay = async () => {
     if (!selectedDate) return;
 
-    // Free plan: once per day per date
-    const isDayLocked = userPlan === "free" && dayAnalysisUsed.has(selectedDate);
+    // Free plan: 3 analyses per date
+    const isDayLocked = userPlan === "free" && (dayAnalysisCount[selectedDate] || 0) >= 3;
     if (isDayLocked) return;
 
     setAnalysisLoading(true);
@@ -438,6 +442,16 @@ export default function Dashboard() {
             {(() => {
               const monthKey = format(currentMonth, "yyyy-MM");
               const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
+              if (!profileLoaded) return (
+                <Button
+                  disabled
+                  variant="outline"
+                  className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary w-full"
+                >
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Carregando...
+                </Button>
+              );
               return isMonthLocked ? (
                   <Button
                     onClick={() => setUpgradeModalOpen(true)}
@@ -508,7 +522,7 @@ export default function Dashboard() {
 
                 {/* Analyze day button inside card */}
                 {hasDayData && (() => {
-                  const isDayLocked = userPlan === "free" && selectedDate && dayAnalysisUsed.has(selectedDate);
+                  const isDayLocked = userPlan === "free" && selectedDate && (dayAnalysisCount[selectedDate] || 0) >= 3;
                   return isDayLocked ? (
                       <Button
                         onClick={() => setUpgradeModalOpen(true)}
@@ -749,7 +763,7 @@ export default function Dashboard() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-muted-foreground">
-                <img src={washHandsSvg} alt="Ilustração de saúde" className="w-40 h-auto opacity-50 mb-4" />
+                <CalendarDays className="w-16 h-16 text-muted-foreground/30 mb-4" />
                 <p className="text-sm font-medium">Selecione um dia</p>
               </div>
             )}
