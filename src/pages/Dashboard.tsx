@@ -11,7 +11,7 @@ import { HydrationProgress } from "@/components/HydrationProgress";
 import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
@@ -343,6 +343,9 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
+            <BookOpen className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
             <UserCircle className="w-5 h-5" />
           </Button>
