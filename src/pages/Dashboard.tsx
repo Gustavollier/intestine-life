@@ -11,7 +11,8 @@ import { HydrationProgress } from "@/components/HydrationProgress";
 import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen } from "lucide-react";
+import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
@@ -26,9 +27,9 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
-// Preload Bristol scale images so they're cached before the modal opens
+// Preload Bristol scale images and wash-hands illustration
 const bristolImages = [bristolType1, bristolType2, bristolType3, bristolType4, bristolType5, bristolType6, bristolType7];
-bristolImages.forEach((src) => {
+[...bristolImages, washHandsSvg].forEach((src) => {
   const img = new Image();
   img.src = src;
 });
@@ -59,6 +60,8 @@ export default function Dashboard() {
   const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>("food");
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
+  // PRO upgrade modal
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   // AI Analysis state
   const [analysisText, setAnalysisText] = useState<string | null>(null);
@@ -437,7 +440,7 @@ export default function Dashboard() {
               const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
               return isMonthLocked ? (
                   <Button
-                    onClick={() => navigate("/profile")}
+                    onClick={() => setUpgradeModalOpen(true)}
                     variant="outline"
                     className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
                   >
@@ -508,7 +511,7 @@ export default function Dashboard() {
                   const isDayLocked = userPlan === "free" && selectedDate && dayAnalysisUsed.has(selectedDate);
                   return isDayLocked ? (
                       <Button
-                        onClick={() => navigate("/profile")}
+                        onClick={() => setUpgradeModalOpen(true)}
                         variant="outline"
                         size="sm"
                         className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
@@ -786,6 +789,7 @@ export default function Dashboard() {
         </>
       )}
 
+      <ProUpgradeModal open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
       <ChatWidget />
     </div>
   );
