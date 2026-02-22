@@ -6,6 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const FREE_DAILY_LIMIT = 2;
+
 const INSIGHTS_PROMPT = `Você é o Dr. Intestine, um proctologista experiente. Analise os dados estatísticos de saúde intestinal do paciente e gere insights práticos baseados em correlações reais encontradas nos dados.
 
 Instruções:
@@ -60,6 +62,17 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const userId = user.id;
 
+    // Parse optional period from body
+    let period = "day";
+    try {
+      const body = await req.json();
+      if (body?.period && ["day", "week", "month"].includes(body.period)) {
+        period = body.period;
+      }
+    } catch {
+      // No body or invalid JSON, default to "day"
+    }
+
     // Check plan & usage limits
     const { data: profile } = await serviceClient
       .from("profiles")
@@ -76,19 +89,43 @@ Deno.serve(async (req) => {
         .eq("user_id", userId)
         .eq("analysis_type", "insights")
         .eq("reference_date", today);
-      if ((count || 0) >= 1) {
+      
+      const used = count || 0;
+      if (used >= FREE_DAILY_LIMIT) {
         return new Response(
-          JSON.stringify({ error: "Limite diário de insights atingido. Assine o PRO para uso ilimitado.", limited: true }),
+          JSON.stringify({ 
+            error: `Limite diário de insights atingido (${used}/${FREE_DAILY_LIMIT}). Assine o PRO para uso ilimitado.`, 
+            limited: true,
+            used,
+            limit: FREE_DAILY_LIMIT
+          }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
+    // Determine date range based on period
+    const now = new Date();
+    let startDate: string;
+    if (period === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      startDate = weekAgo.toISOString().split("T")[0];
+    } else if (period === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      startDate = monthAgo.toISOString().split("T")[0];
+    } else {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      startDate = weekAgo.toISOString().split("T")[0];
+    }
+
     // Fetch all data in parallel
     const [evacRes, foodRes, hydrationRes] = await Promise.all([
-      serviceClient.from("evacuations").select("*").eq("user_id", userId).order("day"),
-      serviceClient.from("food_diary").select("*").eq("user_id", userId).order("day"),
-      serviceClient.from("hydration").select("*").eq("user_id", userId).order("day"),
+      serviceClient.from("evacuations").select("*").eq("user_id", userId).gte("day", startDate).order("day"),
+      serviceClient.from("food_diary").select("*").eq("user_id", userId).gte("day", startDate).order("day"),
+      serviceClient.from("hydration").select("*").eq("user_id", userId).gte("day", startDate).order("day"),
     ]);
 
     const evacuations = evacRes.data || [];
@@ -108,43 +145,36 @@ Deno.serve(async (req) => {
     meals.forEach((m: any) => allDays.add(m.day));
     hydrations.forEach((h: any) => allDays.add(h.day));
 
-    // Hydration per day
     const hydrationByDay: Record<string, number> = {};
     hydrations.forEach((h: any) => {
       hydrationByDay[h.day] = (hydrationByDay[h.day] || 0) + h.ml;
     });
 
-    // Evacuations per day with details
     const evacByDay: Record<string, any[]> = {};
     evacuations.forEach((e: any) => {
       if (!evacByDay[e.day]) evacByDay[e.day] = [];
       evacByDay[e.day].push(e);
     });
 
-    // Meals per day
     const mealsByDay: Record<string, any[]> = {};
     meals.forEach((m: any) => {
       if (!mealsByDay[m.day]) mealsByDay[m.day] = [];
       mealsByDay[m.day].push(m);
     });
 
-    // Compute correlations
     const daysWithEvac = Object.keys(evacByDay);
     const totalEvacDays = daysWithEvac.length;
 
-    // Difficulty distribution
     const diffCounts: Record<string, number> = {};
     evacuations.forEach((e: any) => {
       diffCounts[e.difficulty] = (diffCounts[e.difficulty] || 0) + 1;
     });
 
-    // Bristol distribution
     const bristolCounts: Record<number, number> = {};
     evacuations.forEach((e: any) => {
       if (e.bristol_scale) bristolCounts[e.bristol_scale] = (bristolCounts[e.bristol_scale] || 0) + 1;
     });
 
-    // Hydration vs difficulty correlation
     let highHydrationEasyCount = 0;
     let highHydrationTotal = 0;
     let lowHydrationDifficultCount = 0;
@@ -165,23 +195,19 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Meal types vs evacuation
     const mealTypeCounts: Record<string, number> = {};
     meals.forEach((m: any) => {
       mealTypeCounts[m.meal_type] = (mealTypeCounts[m.meal_type] || 0) + 1;
     });
 
-    // Days with breakfast vs without
     const daysWithBreakfast = new Set(
       meals.filter((m: any) => m.meal_type === "breakfast").map((m: any) => m.day)
     );
 
-    // Average duration
     const avgDuration = evacuations.length > 0
       ? Math.round(evacuations.reduce((a: number, e: any) => a + e.duration, 0) / evacuations.length)
       : 0;
 
-    // Most common time of day
     const timeSlots: Record<string, number> = {};
     evacuations.forEach((e: any) => {
       if (e.time_of_day) {
@@ -191,7 +217,9 @@ Deno.serve(async (req) => {
       }
     });
 
-    const summary = `Dados do paciente (últimos ${allDays.size} dias com registros):
+    const periodLabel = period === "day" ? "últimos 7 dias" : period === "week" ? "última semana" : "último mês";
+
+    const summary = `Dados do paciente (${periodLabel}, ${allDays.size} dias com registros):
 
 EVACUAÇÕES (${evacuations.length} registros em ${totalEvacDays} dias):
 - Dificuldade: Fácil: ${diffCounts["facil"] || 0}, Normal: ${diffCounts["normal"] || 0}, Difícil: ${diffCounts["dificil"] || 0}
@@ -209,7 +237,7 @@ REFEIÇÕES (${meals.length} registros):
 - Dias com café da manhã: ${daysWithBreakfast.size}
 - Dias com evacuação que tinham café da manhã: ${daysWithEvac.filter(d => daysWithBreakfast.has(d)).length}/${totalEvacDays}
 
-Gere insights baseados nestes dados reais.`;
+Gere insights baseados nestes dados reais do período: ${periodLabel}.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -244,8 +272,6 @@ Gere insights baseados nestes dados reais.`;
 
     const aiData = await aiResponse.json();
     let rawContent = aiData.choices?.[0]?.message?.content || "[]";
-
-    // Strip markdown code fences if present
     rawContent = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     let insights;
