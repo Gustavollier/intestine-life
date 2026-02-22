@@ -380,6 +380,10 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
+        <div className="mb-6">
+          <GamificationCard />
+        </div>
+
         <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -788,10 +792,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Gamification */}
-        <div className="mt-6">
-          <GamificationCard />
-        </div>
       </main>
 
       {selectedDate && (
