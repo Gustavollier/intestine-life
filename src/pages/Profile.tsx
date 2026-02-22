@@ -29,10 +29,10 @@ export default function Profile() {
     return document.documentElement.classList.contains("dark");
   });
 
-  // Subscription state
-  const [plan, setPlan] = useState("free");
+  // Subscription state - start with cached plan so text shows instantly
+  const [plan, setPlan] = useState(cachedProfile?.plan || "free");
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
-  const [checkingPlan, setCheckingPlan] = useState(true);
+  const [checkingPlan, setCheckingPlan] = useState(!cachedProfile);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);

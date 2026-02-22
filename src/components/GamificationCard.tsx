@@ -31,15 +31,29 @@ const iconMap: Record<string, React.ReactNode> = {
   "check-circle": <CheckCircle className="w-4 h-4" />,
 };
 
+// Module-level cache
+let cachedGamification: GamificationData | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export function GamificationCard() {
-  const [data, setData] = useState<GamificationData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<GamificationData | null>(cachedGamification);
+  const [loading, setLoading] = useState(!cachedGamification);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
+      const now = Date.now();
+      if (cachedGamification && (now - cacheTimestamp) < CACHE_TTL) {
+        setData(cachedGamification);
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: result, error } = await supabase.functions.invoke("get-gamification");
         if (error) throw error;
+        cachedGamification = result;
+        cacheTimestamp = Date.now();
         setData(result);
       } catch (e) {
         console.error("Gamification fetch error:", e);
@@ -47,7 +61,7 @@ export function GamificationCard() {
         setLoading(false);
       }
     };
-    fetch();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -69,7 +83,6 @@ export function GamificationCard() {
     <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg space-y-5">
       {/* Streak + Stats Row */}
       <div className="flex items-center gap-4">
-        {/* Streak */}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
             <Flame className="w-6 h-6 text-primary" />
@@ -81,14 +94,10 @@ export function GamificationCard() {
             </p>
           </div>
         </div>
-
-        {/* Best streak */}
         <div className="text-center px-3">
           <p className="text-lg font-bold text-foreground leading-none">{data.bestStreak}</p>
           <p className="text-[10px] text-muted-foreground">recorde</p>
         </div>
-
-        {/* Total days */}
         <div className="text-center px-3">
           <p className="text-lg font-bold text-foreground leading-none">{data.totalDaysWithData}</p>
           <p className="text-[10px] text-muted-foreground">dias ativos</p>
