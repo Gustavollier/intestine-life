@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useNotes, Evacuation } from "@/hooks/useNotes";
 import { useFoodDiary } from "@/hooks/useFoodDiary";
 import { useHydration } from "@/hooks/useHydration";
@@ -350,7 +350,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background animate-fade-in">
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -618,8 +618,8 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <ScrollArea className="max-h-[340px]">
-                        <div className="space-y-3 pr-2">
+                      <div className="max-h-[340px] overflow-y-auto">
+                        <div className="space-y-3 pr-1">
                           {selectedFoodEntries.map((entry) => (
                             <div key={entry.id} className="border border-border rounded-xl p-3">
                               <div className="flex items-center justify-between mb-1">
@@ -645,7 +645,7 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      </ScrollArea>
+                      </div>
                     )}
                   </div>
                 ) : activeTab === "hydration" ? (
@@ -687,8 +687,8 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <ScrollArea className="max-h-[200px]">
-                        <div className="space-y-2 pr-2">
+                      <div className="max-h-[200px] overflow-y-auto">
+                        <div className="space-y-2 pr-1">
                           {selectedHydrationEntries.map((entry) => (
                             <div key={entry.id} className="flex items-center justify-between border border-border rounded-xl px-3 py-2">
                               <div className="flex items-center gap-2">
@@ -706,7 +706,7 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
-                      </ScrollArea>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -723,8 +723,8 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <ScrollArea className="max-h-[340px]">
-                        <div className="space-y-3 pr-2">
+                      <div className="max-h-[340px] overflow-y-auto">
+                        <div className="space-y-3 pr-1">
                           {selectedNotes.map((note, idx) => {
                             const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
                             return (
@@ -761,7 +761,7 @@ export default function Dashboard() {
                             );
                           })}
                         </div>
-                      </ScrollArea>
+                      </div>
                     )}
                   </div>
                 )}
