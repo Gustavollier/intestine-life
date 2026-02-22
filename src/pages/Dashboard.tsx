@@ -15,7 +15,8 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { GamificationCard } from "@/components/GamificationCard";
 import { InsightsCard } from "@/components/InsightsCard";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
@@ -65,6 +66,8 @@ export default function Dashboard() {
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
   // PRO upgrade modal
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  // Insights modal
+  const [insightsModalOpen, setInsightsModalOpen] = useState(false);
 
   // AI Analysis state
   const [analysisText, setAnalysisText] = useState<string | null>(null);
@@ -370,6 +373,9 @@ export default function Dashboard() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
             <BookOpen className="w-5 h-5" />
           </Button>
+          <Button variant="ghost" size="icon" onClick={() => setInsightsModalOpen(true)} className="rounded-full" title="Insights Inteligentes">
+            <Lightbulb className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
             <UserCircle className="w-5 h-5" />
           </Button>
@@ -381,10 +387,16 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="mb-6">
           <GamificationCard />
-          <InsightsCard />
         </div>
+
+        {/* Insights Modal */}
+        <Dialog open={insightsModalOpen} onOpenChange={setInsightsModalOpen}>
+          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden">
+            <InsightsCard />
+          </DialogContent>
+        </Dialog>
 
         <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
 
