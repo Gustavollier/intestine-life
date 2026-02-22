@@ -23,6 +23,7 @@ export function InsightsCard() {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState(false);
 
@@ -70,29 +71,13 @@ export function InsightsCard() {
     }
   };
 
-  if (!loaded && !loading) {
-    return (
-      <div className="p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Lightbulb className="w-4 h-4 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground text-sm">Insights Inteligentes</h3>
-            <p className="text-xs text-muted-foreground">Correlações entre seus dados</p>
-          </div>
-        </div>
-        <Button
-          onClick={fetchInsights}
-          variant="outline"
-          className="w-full rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
-        >
-          <Lightbulb className="w-4 h-4" />
-          Gerar insights dos meus dados
-        </Button>
-      </div>
-    );
-  }
+  // Auto-trigger on mount
+  useEffect(() => {
+    if (!autoTriggered && !loaded && !loading) {
+      setAutoTriggered(true);
+      fetchInsights();
+    }
+  }, [autoTriggered, loaded, loading]);
 
   if (loading) {
     return (

@@ -15,8 +15,10 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { GamificationCard } from "@/components/GamificationCard";
 import { InsightsCard } from "@/components/InsightsCard";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb, Menu } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
 import bristolType1 from "@/assets/bristol/type1.png";
@@ -49,6 +51,7 @@ const difficultyColors: Record<string, string> = {
 type TabType = "evacuations" | "food" | "hydration";
 
 export default function Dashboard() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState("usuário");
@@ -66,8 +69,8 @@ export default function Dashboard() {
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
   // PRO upgrade modal
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  // Insights modal
   const [insightsModalOpen, setInsightsModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // AI Analysis state
   const [analysisText, setAnalysisText] = useState<string | null>(null);
@@ -357,43 +360,93 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background animate-fade-in">
       {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="font-bold text-foreground leading-tight">Intestine Life</h1>
-            <p className="text-xs text-muted-foreground">Olá, {username}!</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
-            <BookOpen className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setInsightsModalOpen(true)} className="rounded-full" title="Insights Inteligentes">
-            <Lightbulb className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
-            <UserCircle className="w-5 h-5" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
-            <LogOut className="w-4 h-4" /> Sair
-          </Button>
-        </div>
+      <header className="bg-card border-b border-border px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* Mobile: hamburger menu */}
+        {isMobile ? (
+          <>
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)} className="rounded-full">
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
+                </svg>
+              </div>
+              <h1 className="font-bold text-foreground text-sm leading-tight">Intestine Life</h1>
+            </div>
+            {/* Spacer to keep title centered */}
+            <div className="w-10" />
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3c-1.5 0-2.5 1-2.5 2.5v2c0 1-0.5 1.5-1.5 1.5-1 0-1.5 0.5-1.5 1.5v3c0 1.5 1 2.5 2.5 2.5h1c1 0 1.5 0.5 1.5 1.5v3c0 1.5 1 2.5 2.5 2.5s2.5-1 2.5-2.5v-2c0-1 0.5-1.5 1.5-1.5h2c1 0 1.5-0.5 1.5-1.5v-2c0-1 0.5-1.5 1.5-1.5 1.5 0 2.5-1 2.5-2.5v-1c0-1.5-1-2.5-2.5-2.5-1 0-1.5-0.5-1.5-1.5v-1c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5v3c0 1-0.5 1.5-1.5 1.5H10c-1 0-1.5 0.5-1.5 1.5v1" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="font-bold text-foreground leading-tight">Intestine Life</h1>
+                <p className="text-xs text-muted-foreground">Olá, {username}!</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
+                <BookOpen className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setInsightsModalOpen(true)} className="rounded-full" title="Insights Inteligentes">
+                <Lightbulb className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
+                <UserCircle className="w-5 h-5" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
+                <LogOut className="w-4 h-4" /> Sair
+              </Button>
+            </div>
+          </>
+        )}
       </header>
 
+      {/* Mobile sidebar menu */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle className="text-left text-sm">Menu</SheetTitle>
+          </SheetHeader>
+          <nav className="flex flex-col p-2 gap-1">
+            <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { navigate("/digestive-guide"); setMobileMenuOpen(false); }}>
+              <BookOpen className="w-5 h-5" />
+              <span>Guia Digestivo</span>
+            </Button>
+            <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { setInsightsModalOpen(true); setMobileMenuOpen(false); }}>
+              <Lightbulb className="w-5 h-5" />
+              <span>Insights</span>
+            </Button>
+            <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { navigate("/profile"); setMobileMenuOpen(false); }}>
+              <UserCircle className="w-5 h-5" />
+              <span>Perfil</span>
+            </Button>
+          </nav>
+          <div className="mt-auto border-t border-border p-2">
+            <Button variant="ghost" className="justify-start gap-3 rounded-xl w-full text-destructive hover:text-destructive" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
+              <LogOut className="w-5 h-5" />
+              <span>Sair</span>
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Main content */}
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6">
         <div className="mb-6">
           <GamificationCard />
         </div>
 
         {/* Insights Modal */}
         <Dialog open={insightsModalOpen} onOpenChange={setInsightsModalOpen}>
-          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden">
+          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden mx-4">
             <InsightsCard />
           </DialogContent>
         </Dialog>
