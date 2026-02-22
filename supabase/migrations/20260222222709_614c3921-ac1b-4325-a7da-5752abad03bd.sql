@@ -1,0 +1,2 @@
+ALTER TABLE public.analysis_usage DROP CONSTRAINT IF EXISTS analysis_usage_analysis_type_check;
+ALTER TABLE public.analysis_usage ADD CONSTRAINT analysis_usage_analysis_type_check CHECK (analysis_type IN ('day', 'month', 'insights'));
