@@ -198,6 +198,7 @@ export default function Dashboard() {
       setUpgradeModalOpen(true);
       return;
     }
+    setAnalysisLoading(true);
     setAnalysisText(null);
     setAnalysisDate(selectedDate);
     setAnalysisType("day");
@@ -229,19 +230,17 @@ export default function Dashboard() {
       });
 
       if (error) {
-        // Check for 429 limit
-        try {
-          const parsed = typeof error === "string" ? JSON.parse(error) : error;
-          if (parsed?.message?.includes("429") || parsed?.context?.status === 429) {
-            setUpgradeModalOpen(true);
-            setAnalysisLoading(false);
-            return;
-          }
-        } catch {}
+        // Check for 429 limit — immediately block button
+        const errMsg = typeof error === "object" ? error?.message || "" : String(error);
+        if (errMsg.includes("429") || errMsg.includes("Limite")) {
+          setAnalysisUsedToday(FREE_ANALYSIS_DAILY);
+          setUpgradeModalOpen(true);
+          return;
+        }
         throw error;
       }
       setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
-      // Update usage counter for free users
+      // Immediately update usage counter for free users
       if (userPlan === "free") {
         setAnalysisUsedToday((prev) => (prev !== null ? prev + 1 : 1));
       }
@@ -319,15 +318,13 @@ export default function Dashboard() {
       });
 
       if (error) {
-        // Check for 429 limit
-        try {
-          const parsed = typeof error === "string" ? JSON.parse(error) : error;
-          if (parsed?.message?.includes("429") || parsed?.context?.status === 429) {
-            setUpgradeModalOpen(true);
-            setMonthlyAnalysisLoading(false);
-            return;
-          }
-        } catch {}
+        const errMsg = typeof error === "object" ? error?.message || "" : String(error);
+        if (errMsg.includes("429") || errMsg.includes("Limite")) {
+          setMonthlyAnalysisUsed(FREE_ANALYSIS_MONTHLY);
+          setUpgradeModalOpen(true);
+          setMonthlyAnalysisLoading(false);
+          return;
+        }
         throw error;
       }
       setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
