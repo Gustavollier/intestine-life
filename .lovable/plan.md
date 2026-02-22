@@ -1,69 +1,66 @@
 
-# Pagina Educativa: Guia do Sistema Digestivo
 
-## Objetivo
-Criar uma pagina interativa e visualmente atraente que explica cada parte do sistema digestivo, sua funcao, sinais de alerta e dicas de saude. A pagina tera animacoes com `framer-motion` e ilustracoes SVG inline para engajar o usuario.
+# Localizador de Consultórios de Proctologia
 
-## Estrutura da Pagina
+## Como funciona
 
-A pagina sera dividida em secoes scrollaveis, cada uma representando uma parte do trato digestivo:
+1. O navegador pede permissão de localização ao usuário
+2. Com as coordenadas (latitude/longitude), uma função backend consulta a Google Places API buscando por "proctologista" ou "proctologia" próximos
+3. Os resultados são exibidos em cards com nome, endereço, telefone, avaliação e distância
+4. Opcionalmente, um mapa interativo mostra os consultórios no mapa
 
-1. **Hero / Introducao** — Titulo animado + ilustracao do sistema digestivo completo
-2. **Boca e Esofago** — Onde tudo comeca (mastigacao, degluticao)
-3. **Estomago** — Digestao acida e enzimas
-4. **Intestino Delgado** — Absorcao de nutrientes (duodeno, jejuno, ileo)
-5. **Intestino Grosso** — Absorcao de agua, formacao das fezes
-6. **Reto e Anus** — Eliminacao
-7. **Dicas Gerais de Saude Intestinal** — Card final com recomendacoes praticas
+## Arquitetura
 
-Cada secao tera:
-- Icone/ilustracao SVG animada
-- Titulo e descricao da funcao
-- Card de "Sinais de Alerta" (com icone de alerta)
-- Card de "Dicas de Saude" (com icone de coracao/check)
+```text
+[Navegador]                    [Backend]                  [Google]
+    |                              |                          |
+    |-- navigator.geolocation ---->|                          |
+    |                              |-- Places API (nearby) -->|
+    |                              |<-- resultados ---------- |
+    |<-- lista de consultórios ----|                          |
+```
 
-## Navegacao
+## O que precisa ser feito
 
-- Botao de voltar ao Dashboard (mesmo padrao da pagina Bristol Scale)
-- Link acessivel a partir do Dashboard (botao ou menu)
-- Rota protegida: `/digestive-guide`
+### 1. Configurar API Key do Google Places
+- Criar uma chave na Google Cloud Console com a Places API habilitada
+- Armazenar como secret no backend (GOOGLE_PLACES_API_KEY)
 
-## Animacoes (framer-motion)
+### 2. Criar função backend `search-clinics`
+- Recebe latitude, longitude e raio de busca
+- Consulta Google Places API (Text Search ou Nearby Search) por termos como "proctologista", "proctologia"
+- Retorna nome, endereco, telefone, avaliacao, horario de funcionamento e coordenadas
 
-- **Fade-in + slide-up** nas secoes conforme o usuario faz scroll (viewport entry)
-- **Stagger** nos cards de cada secao (aparecem um apos o outro)
-- **Hover scale** nos cards de dicas e sinais de alerta
-- **Pulse suave** nos icones SVG inline para dar vida
+### 3. Nova página `/clinics`
+- Solicita permissão de geolocalização
+- Exibe os resultados em cards organizados por distância
+- Cada card mostra: nome, endereço, avaliação (estrelas), telefone e botão para abrir no Google Maps
+- Filtro de raio de busca (5km, 10km, 25km)
+- Estado de loading com skeletons
+- Fallback caso o usuário negue a localização (campo para digitar CEP/cidade)
 
-## Detalhes Tecnicos
+### 4. Navegação
+- Adicionar link na sidebar/menu do dashboard
+- Rota protegida como as demais
 
-### Arquivos a criar
-1. **`src/pages/DigestiveGuide.tsx`** — Pagina principal com todas as secoes
-2. **`src/components/DigestiveSection.tsx`** — Componente reutilizavel para cada secao do trato digestivo
+## Detalhes Técnicos
 
-### Arquivos a modificar
-1. **`src/App.tsx`** — Adicionar rota `/digestive-guide` protegida
-2. **`src/pages/Dashboard.tsx`** — Adicionar botao/link para acessar a pagina
-3. **`package.json`** — Instalar `framer-motion`
+### Função backend (`supabase/functions/search-clinics/index.ts`)
+- Usa `GOOGLE_PLACES_API_KEY` do ambiente
+- Endpoint: `https://maps.googleapis.com/maps/api/place/textsearch/json`
+- Query: `proctologista` com `location` e `radius`
+- Sem limites de uso para o usuário (não consome créditos internos)
 
-### Dependencia nova
-- `framer-motion` — biblioteca de animacoes para React
+### Página (`src/pages/Clinics.tsx`)
+- `navigator.geolocation.getCurrentPosition()` para obter coordenadas
+- Chama a edge function via `supabase.functions.invoke("search-clinics")`
+- Exibe resultados em grid responsivo de cards
 
-### Padrao de design
-- Seguir o mesmo esquema de cores do projeto (primary verde, cards com bg-card, dark mode completo)
-- Usar componentes existentes: `Card`, `Button`, `ScrollArea`
-- Ilustracoes feitas com SVG inline ou emojis estilizados (sem necessidade de assets externos)
-- Responsivo: layout em coluna unica no mobile, cards lado a lado no desktop
+### Custos
+- Google Places API tem camada gratuita generosa (sem custo para volume baixo)
+- Nenhum dado precisa ser armazenado no banco
 
-### Conteudo das secoes (resumo)
+## Pré-requisito
+- Criar uma chave de API no Google Cloud Console com a Places API (New) habilitada
+- A chave será armazenada de forma segura como secret no backend
 
-| Orgao | Funcao | Sinal de Alerta | Dica |
-|-------|--------|-----------------|------|
-| Boca/Esofago | Mastigacao e transporte | Dificuldade para engolir, azia frequente | Mastigar bem, comer devagar |
-| Estomago | Digestao acida | Queimacao, nausea, refluxo | Evitar comer deitado, reduzir alimentos acidos |
-| Intestino Delgado | Absorcao de nutrientes | Inchaço, diarreia cronica, perda de peso | Dieta balanceada, probioticos |
-| Intestino Grosso | Absorcao de agua, fezes | Constipacao, sangue nas fezes | Fibras, hidratacao, exercicio |
-| Reto/Anus | Eliminacao | Dor ao evacuar, hemorroidas | Nao segurar, postura correta |
-
-### Dark mode
-- Todos os cards e secoes terao variantes dark completas, seguindo o padrao ja existente no projeto (ex: `dark:bg-card dark:text-card-foreground`)
