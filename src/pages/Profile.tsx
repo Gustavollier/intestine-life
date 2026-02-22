@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, User, Lock, Moon, Sun, Crown, Loader2, CreditCard } from "lucide-react";
 import StripeCheckout from "@/components/StripeCheckout";
@@ -14,6 +15,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { profile: cachedProfile, loading: profileCacheLoading, updateCachedName, updateCachedPlan, fetchProfile } = useProfile();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,16 +37,19 @@ export default function Profile() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
+  // Sync from cached profile
   useEffect(() => {
-    const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    if (cachedProfile) {
+      setName(cachedProfile.name);
+      setPlan(cachedProfile.plan);
+    }
+  }, [cachedProfile]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { navigate("/"); return; }
       setEmail(user.email || "");
-      const { data } = await supabase.from("profiles").select("name, plan").eq("user_id", user.id).maybeSingle();
-      if (data?.name) setName(data.name);
-      if (data?.plan) setPlan(data.plan);
-    };
-    loadProfile();
+    });
   }, [navigate]);
 
   // Check subscription status on mount and after checkout
@@ -55,6 +60,7 @@ export default function Profile() {
         const { data, error } = await supabase.functions.invoke("check-subscription");
         if (!error && data) {
           setPlan(data.plan || "free");
+          updateCachedPlan(data.plan || "free");
           setSubscriptionEnd(data.subscription_end || null);
         }
       } catch (e) {
@@ -84,6 +90,7 @@ export default function Profile() {
     if (error) {
       toast({ title: "Erro ao salvar nome", variant: "destructive" });
     } else {
+      updateCachedName(name);
       toast({ title: "Nome atualizado com sucesso!" });
     }
     setSaving(false);
