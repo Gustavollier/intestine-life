@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Droplets, UtensilsCrossed, Flame, TrendingUp, TrendingDown, Clock, CalendarDays, Lightbulb, Loader2, RefreshCw, Lock, Crown, Sparkles } from "lucide-react";
+import { Droplets, UtensilsCrossed, Flame, TrendingUp, TrendingDown, Clock, CalendarDays, Lightbulb, RefreshCw, Lock, Crown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 
 interface Insight {
   icon: string;
@@ -33,6 +34,9 @@ interface InsightsCardProps {
 const FREE_DAILY_LIMIT = 2;
 
 export function InsightsCard({ onUpgrade }: InsightsCardProps) {
+  const { profile } = useProfile();
+  const isPro = profile?.plan === "pro";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limited, setLimited] = useState(false);
@@ -48,8 +52,9 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
 
   const currentInsights = cacheRef.current[period];
 
-  // Check usage on mount
+  // Check usage on mount (only for free users)
   useEffect(() => {
+    if (isPro) return;
     const checkUsage = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -68,7 +73,7 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
       }
     };
     checkUsage();
-  }, []);
+  }, [isPro]);
 
   const fetchInsights = async () => {
     if (limited) {
@@ -99,10 +104,12 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
       }
       if (data?.insights) {
         cacheRef.current[period] = data.insights;
-        const newUsed = (usedToday !== null ? usedToday + 1 : 1);
-        setUsedToday(newUsed);
-        if (newUsed >= FREE_DAILY_LIMIT) {
-          setLimited(true);
+        if (!isPro) {
+          const newUsed = (usedToday !== null ? usedToday + 1 : 1);
+          setUsedToday(newUsed);
+          if (newUsed >= FREE_DAILY_LIMIT) {
+            setLimited(true);
+          }
         }
       } else if (data?.message) {
         setError(data.message);
@@ -124,49 +131,39 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
     }
   };
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="p-5">
-        <div className="flex items-center justify-center py-8 gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Analisando seus dados...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error (limit reached globally)
-  if (error && limited) {
-    return (
-      <div className="p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Lock className="w-4 h-4 text-primary" />
+  // Loading skeleton with animated lightbulb
+  const LoadingSkeleton = () => (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10"
+        >
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="w-4 h-4 rounded bg-primary/20 animate-pulse" />
           </div>
-          <h3 className="font-semibold text-foreground text-sm">Insights</h3>
+          <div className="flex-1 space-y-2 py-0.5">
+            <div className="h-3 bg-primary/10 rounded-full w-full animate-pulse" />
+            <div className="h-3 bg-primary/10 rounded-full w-3/4 animate-pulse" />
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center py-4">{error}</p>
-        {onUpgrade && (
-          <Button onClick={onUpgrade} className="w-full gap-2 rounded-xl">
-            <Crown className="w-4 h-4" />
-            Seja Pro
-          </Button>
-        )}
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <div className="p-5">
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Lightbulb className="w-4 h-4 text-primary" />
+          <div className={`w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center ${loading ? "animate-pulse" : ""}`}>
+            <Lightbulb className={`w-4 h-4 text-primary ${loading ? "animate-[scale-in_0.6s_ease-in-out_infinite_alternate]" : ""}`} />
           </div>
           <div>
             <h3 className="font-semibold text-foreground text-sm">Insights Inteligentes</h3>
-            <p className="text-xs text-muted-foreground">Baseados nos seus dados reais</p>
+            <p className="text-xs text-muted-foreground">
+              {loading ? "Gerando insights..." : "Baseados nos seus dados reais"}
+            </p>
           </div>
         </div>
       </div>
@@ -176,18 +173,19 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
         {(["day", "week", "month"] as Period[]).map((p) => (
           <button
             key={p}
-            onClick={() => setPeriod(p)}
+            onClick={() => !loading && setPeriod(p)}
+            disabled={loading}
             className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
+            } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {periodLabels[p]}
           </button>
         ))}
       </div>
 
-      {/* Usage indicator */}
-      {usedToday !== null && (
+      {/* Usage indicator — only for free users */}
+      {!isPro && usedToday !== null && (
         <div className="flex items-center justify-center gap-1.5 mb-3">
           <div className="flex gap-0.5">
             {Array.from({ length: FREE_DAILY_LIMIT }).map((_, i) => (
@@ -205,14 +203,30 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
         </div>
       )}
 
+      {/* Loading skeleton */}
+      {loading && <LoadingSkeleton />}
+
+      {/* Error (limit reached globally) */}
+      {!loading && error && limited && (
+        <>
+          <p className="text-sm text-muted-foreground text-center py-4">{error}</p>
+          {onUpgrade && (
+            <Button onClick={onUpgrade} className="w-full gap-2 rounded-xl">
+              <Crown className="w-4 h-4" />
+              Seja Pro
+            </Button>
+          )}
+        </>
+      )}
+
       {/* Error (non-limit) */}
-      {error && !limited && (
+      {!loading && error && !limited && (
         <p className="text-sm text-muted-foreground text-center py-4">{error}</p>
       )}
 
       {/* Show cached results if available */}
-      {currentInsights && currentInsights.length > 0 ? (
-        <div className="space-y-3">
+      {!loading && !error && currentInsights && currentInsights.length > 0 && (
+        <div className="space-y-3 animate-fade-in">
           {currentInsights.map((insight, i) => (
             <div
               key={i}
@@ -237,23 +251,23 @@ export function InsightsCard({ onUpgrade }: InsightsCardProps) {
             </Button>
           )}
         </div>
-      ) : (
-        /* No cached results — show generate button */
-        !error && (
-          <div className="flex flex-col items-center py-6 gap-3">
-            <p className="text-sm text-muted-foreground text-center">
-              Selecione o período e gere seus insights
-            </p>
-            <Button
-              onClick={fetchInsights}
-              disabled={limited}
-              className="gap-2 rounded-xl"
-            >
-              {limited ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-              {limited ? "Limite atingido" : `Gerar insights — ${periodLabels[period]}`}
-            </Button>
-          </div>
-        )
+      )}
+
+      {/* No cached results — show generate button */}
+      {!loading && !error && (!currentInsights || currentInsights.length === 0) && (
+        <div className="flex flex-col items-center py-6 gap-3">
+          <p className="text-sm text-muted-foreground text-center">
+            Selecione o período e gere seus insights
+          </p>
+          <Button
+            onClick={fetchInsights}
+            disabled={limited}
+            className="gap-2 rounded-xl"
+          >
+            {limited ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            {limited ? "Limite atingido" : "Gerar insights"}
+          </Button>
+        </div>
       )}
     </div>
   );
