@@ -60,6 +60,30 @@ Deno.serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, serviceKey);
     const userId = user.id;
 
+    // Check plan & usage limits
+    const { data: profile } = await serviceClient
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const userPlan = profile?.plan || "free";
+
+    if (userPlan === "free") {
+      const today = new Date().toISOString().split("T")[0];
+      const { count } = await serviceClient
+        .from("analysis_usage")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("analysis_type", "insights")
+        .eq("reference_date", today);
+      if ((count || 0) >= 1) {
+        return new Response(
+          JSON.stringify({ error: "Limite diário de insights atingido. Assine o PRO para uso ilimitado.", limited: true }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Fetch all data in parallel
     const [evacRes, foodRes, hydrationRes] = await Promise.all([
       serviceClient.from("evacuations").select("*").eq("user_id", userId).order("day"),
@@ -230,6 +254,16 @@ Gere insights baseados nestes dados reais.`;
     } catch {
       console.error("Failed to parse insights:", rawContent);
       insights = [];
+    }
+
+    // Record usage for free plan
+    if (userPlan === "free") {
+      const today = new Date().toISOString().split("T")[0];
+      await serviceClient.from("analysis_usage").insert({
+        user_id: userId,
+        analysis_type: "insights",
+        reference_date: today,
+      });
     }
 
     return new Response(
