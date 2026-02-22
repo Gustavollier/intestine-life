@@ -89,6 +89,25 @@ export default function Dashboard() {
   const username = cachedProfile?.name?.split(" ")[0] || "usuário";
   const profileLoaded = !profileLoading;
 
+  // Analysis usage tracking for free users
+  const [analysisUsedToday, setAnalysisUsedToday] = useState<number | null>(null);
+  const FREE_ANALYSIS_DAILY = 1;
+  const FREE_ANALYSIS_MONTHLY = 3;
+
+  useEffect(() => {
+    if (userPlan === "free" && profileLoaded) {
+      const fetchAnalysisUsage = async () => {
+        const today = new Date().toISOString().split("T")[0];
+        const { count } = await supabase
+          .from("analysis_usage")
+          .select("*", { count: "exact", head: true })
+          .eq("reference_date", today);
+        setAnalysisUsedToday(count || 0);
+      };
+      fetchAnalysisUsage();
+    }
+  }, [userPlan, profileLoaded]);
+
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
     return saved ? parseInt(saved, 10) : 2000;
@@ -553,20 +572,27 @@ export default function Dashboard() {
 
                 {/* Analyze day button inside card */}
                 {hasDayData && (
-                      <Button
-                        onClick={handleAnalyzeDay}
-                        disabled={analysisLoading}
-                        variant="outline"
-                        size="sm"
-                        className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        {analysisLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Bot className="w-4 h-4" />
-                        )}
-                        {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
-                      </Button>
+                  <div className="mb-3">
+                    <Button
+                      onClick={handleAnalyzeDay}
+                      disabled={analysisLoading}
+                      variant="outline"
+                      size="sm"
+                      className="w-full rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      {analysisLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Bot className="w-4 h-4" />
+                      )}
+                      {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
+                    </Button>
+                    {userPlan === "free" && analysisUsedToday !== null && (
+                      <p className="text-[10px] text-muted-foreground text-center mt-1">
+                        {Math.max(0, FREE_ANALYSIS_DAILY - analysisUsedToday)}/{FREE_ANALYSIS_DAILY} análise restante hoje
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {/* Day AI Analysis Card (inline) */}

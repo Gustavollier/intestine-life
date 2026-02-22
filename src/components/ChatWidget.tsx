@@ -6,10 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { useProfile } from "@/hooks/useProfile";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const FREE_DAILY_LIMIT = 5;
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -18,16 +20,34 @@ export function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [limited, setLimited] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [usedMessages, setUsedMessages] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { profile } = useProfile();
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, open]);
+
+  // Fetch usage count when chat opens (free users only)
+  useEffect(() => {
+    if (open && profile?.plan === "free") {
+      const fetchUsage = async () => {
+        const today = new Date().toISOString().split("T")[0];
+        const { data } = await supabase
+          .from("chat_usage")
+          .select("message_count")
+          .eq("day", today)
+          .maybeSingle();
+        setUsedMessages(data?.message_count || 0);
+      };
+      fetchUsage();
+    }
+  }, [open, profile?.plan]);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -156,6 +176,10 @@ export function ChatWidget() {
       }
     } finally {
       setIsLoading(false);
+      // Increment local usage counter after successful send
+      if (profile?.plan === "free" && usedMessages !== null) {
+        setUsedMessages((prev) => (prev !== null ? prev + 1 : 1));
+      }
     }
   }, [input, isLoading, limited, messages, toast]);
 
@@ -271,6 +295,23 @@ export function ChatWidget() {
               </div>
             ) : (
               <>
+                {profile?.plan === "free" && usedMessages !== null && (
+                  <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: FREE_DAILY_LIMIT }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                            i < usedMessages ? "bg-primary" : "bg-muted-foreground/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">
+                      {Math.max(0, FREE_DAILY_LIMIT - usedMessages)}/{FREE_DAILY_LIMIT} restantes
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-end gap-2">
                   <textarea
                     ref={inputRef}
