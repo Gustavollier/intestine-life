@@ -14,6 +14,7 @@ import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { GamificationCard } from "@/components/GamificationCard";
+import { InsightsCard } from "@/components/InsightsCard";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
@@ -380,8 +381,9 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <div className="mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <GamificationCard />
+          <InsightsCard />
         </div>
 
         <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
