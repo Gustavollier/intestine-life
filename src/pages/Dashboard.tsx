@@ -618,7 +618,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="max-h-[340px] overflow-y-auto">
+                      <div className="max-h-[340px] overflow-y-auto styled-scroll">
                         <div className="space-y-3 pr-1">
                           {selectedFoodEntries.map((entry) => (
                             <div key={entry.id} className="border border-border rounded-xl p-3">
@@ -687,7 +687,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="max-h-[200px] overflow-y-auto">
+                      <div className="max-h-[200px] overflow-y-auto styled-scroll">
                         <div className="space-y-2 pr-1">
                           {selectedHydrationEntries.map((entry) => (
                             <div key={entry.id} className="flex items-center justify-between border border-border rounded-xl px-3 py-2">
@@ -723,7 +723,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className="max-h-[340px] overflow-y-auto">
+                      <div className="max-h-[340px] overflow-y-auto styled-scroll">
                         <div className="space-y-3 pr-1">
                           {selectedNotes.map((note, idx) => {
                             const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";

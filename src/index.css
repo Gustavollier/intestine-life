@@ -92,3 +92,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom styled scrollbar */
+.styled-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.styled-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.styled-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 9999px;
+}
+.styled-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
+.styled-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+}
