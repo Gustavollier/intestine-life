@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, X, Send, Loader2, Lock } from "lucide-react";
+import { Bot, X, Send, Loader2, Lock, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -21,6 +22,7 @@ export function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Load user profile and daily usage
   useEffect(() => {
@@ -220,7 +222,11 @@ export function ChatWidget() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-4rem)] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className={`fixed z-50 bg-card border border-border shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200 ${
+          isMobile
+            ? "inset-0 rounded-none"
+            : "bottom-6 right-6 w-[380px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-4rem)] rounded-2xl"
+        }`}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5">
             <div className="flex items-center gap-2">
@@ -232,8 +238,15 @@ export function ChatWidget() {
                 <p className="text-xs text-muted-foreground">Assistente de saúde intestinal</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="p-1.5 hover:bg-muted rounded-lg">
-              <X className="w-4 h-4 text-muted-foreground" />
+            <button onClick={() => setOpen(false)} className="p-1.5 hover:bg-muted rounded-lg flex items-center gap-1">
+              {isMobile ? (
+                <>
+                  <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Voltar</span>
+                </>
+              ) : (
+                <X className="w-4 h-4 text-muted-foreground" />
+              )}
             </button>
           </div>
 
