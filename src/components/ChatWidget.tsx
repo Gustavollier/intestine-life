@@ -1,56 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, X, Send, Loader2, Lock, ArrowLeft } from "lucide-react";
+import { Bot, X, Send, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
-const FREE_DAILY_LIMIT = 5;
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [userPlan, setUserPlan] = useState("free");
-  const [dailyCount, setDailyCount] = useState(0);
+  const [limited, setLimited] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
-
-  // Load user profile and daily usage
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch profile name and plan
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name, plan")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile?.name) setUserName(profile.name.split(" ")[0]);
-      if (profile?.plan) setUserPlan(profile.plan);
-
-      // Fetch today's chat usage
-      const today = new Date().toISOString().split("T")[0];
-      const { data: usage } = await supabase
-        .from("chat_usage")
-        .select("message_count")
-        .eq("user_id", user.id)
-        .eq("day", today)
-        .maybeSingle();
-      if (usage) setDailyCount(usage.message_count);
-    };
-    load();
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -64,32 +35,14 @@ export function ChatWidget() {
     }
   }, [open]);
 
-  const isLimitReached = userPlan === "free" && dailyCount >= FREE_DAILY_LIMIT;
-
-  const incrementUsage = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const today = new Date().toISOString().split("T")[0];
-    const newCount = dailyCount + 1;
-
-    await supabase.from("chat_usage").upsert(
-      { user_id: user.id, day: today, message_count: newCount },
-      { onConflict: "user_id,day" }
-    );
-    setDailyCount(newCount);
-  };
-
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || isLoading || isLimitReached) return;
+    if (!text || isLoading || limited) return;
 
     const userMsg: Msg = { role: "user", content: text };
     setInput("");
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
-
-    // Track usage
-    await incrementUsage();
 
     let assistantSoFar = "";
 
@@ -125,6 +78,12 @@ export function ChatWidget() {
 
       if (!resp.ok) {
         const errorData = await resp.json().catch(() => ({}));
+        if (resp.status === 429 && errorData.limited) {
+          setLimited(true);
+          setUpgradeOpen(true);
+          setMessages((prev) => prev.slice(0, -1));
+          return;
+        }
         throw new Error(errorData.error || `Erro ${resp.status}`);
       }
 
@@ -198,7 +157,7 @@ export function ChatWidget() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, isLimitReached, messages, toast, userName, dailyCount]);
+  }, [input, isLoading, limited, messages, toast]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -251,7 +210,7 @@ export function ChatWidget() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 styled-scroll">
             {messages.length === 0 && (
               <div className="text-center py-8">
                 <Bot className="w-8 h-8 text-primary opacity-60" />
@@ -296,19 +255,18 @@ export function ChatWidget() {
 
           {/* Input */}
           <div className="border-t border-border px-3 py-2.5">
-            {isLimitReached ? (
+            {limited ? (
               <div className="text-center py-3">
-                <Lock className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" />
                 <p className="text-sm font-medium text-foreground">Limite diário atingido</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Você usou {FREE_DAILY_LIMIT}/{FREE_DAILY_LIMIT} mensagens gratuitas hoje.
+                  Faça upgrade para o PRO para continuar conversando.
                 </p>
                 <Button
                   size="sm"
                   className="mt-2 rounded-xl text-xs"
-                  onClick={() => window.location.href = "/profile"}
+                  onClick={() => setUpgradeOpen(true)}
                 >
-                  Fazer upgrade para Pro
+                  Seja Pro
                 </Button>
               </div>
             ) : (
@@ -332,21 +290,16 @@ export function ChatWidget() {
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <p className="text-[10px] text-muted-foreground">
-                    Não substitui consulta médica presencial
-                  </p>
-                  {userPlan === "free" && (
-                    <p className="text-[10px] text-muted-foreground">
-                      {FREE_DAILY_LIMIT - dailyCount} msgs restantes
-                    </p>
-                  )}
-                </div>
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  Não substitui consulta médica presencial
+                </p>
               </>
             )}
           </div>
         </div>
       )}
+
+      <ProUpgradeModal open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </>
   );
 }

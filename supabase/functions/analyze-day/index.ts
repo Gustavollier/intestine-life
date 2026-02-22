@@ -205,6 +205,16 @@ serve(async (req) => {
     const data = await response.json();
     const analysis = data.choices?.[0]?.message?.content || "Não foi possível gerar a análise.";
 
+    // Record usage for free plan (server-side)
+    if (profile?.plan === "free") {
+      const analysisType = monthSummary ? "month" : "day";
+      await serviceClient.from("analysis_usage").insert({
+        user_id: user.id,
+        analysis_type: analysisType,
+        reference_date: date,
+      });
+    }
+
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

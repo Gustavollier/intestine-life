@@ -101,10 +101,16 @@ serve(async (req) => {
       const currentCount = usage?.message_count || 0;
       if (currentCount >= FREE_DAILY_LIMIT) {
         return new Response(
-          JSON.stringify({ error: "Limite diário atingido. Faça upgrade para o PRO para continuar." }),
+          JSON.stringify({ error: "Limite diário atingido. Faça upgrade para o PRO para continuar.", limited: true }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Increment usage server-side
+      await serviceClient.from("chat_usage").upsert(
+        { user_id: user.id, day: today, message_count: currentCount + 1 },
+        { onConflict: "user_id,day" }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
