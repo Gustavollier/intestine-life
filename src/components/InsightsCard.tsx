@@ -133,7 +133,7 @@ export function InsightsCard() {
         </div>
         <button
           onClick={fetchInsights}
-          className="p-1.5 hover:bg-muted rounded-lg"
+          className="p-1.5 hover:bg-muted rounded-lg mr-6"
           title="Atualizar insights"
         >
           <RefreshCw className="w-4 h-4 text-muted-foreground" />
