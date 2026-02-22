@@ -43,7 +43,11 @@ export function ChatWidget() {
           .select("message_count")
           .eq("day", today)
           .maybeSingle();
-        setUsedMessages(data?.message_count || 0);
+        const count = data?.message_count || 0;
+        setUsedMessages(count);
+        if (count >= FREE_DAILY_LIMIT) {
+          setLimited(true);
+        }
       };
       fetchUsage();
     }
@@ -178,7 +182,11 @@ export function ChatWidget() {
       setIsLoading(false);
       // Increment local usage counter after successful send
       if (profile?.plan === "free" && usedMessages !== null) {
-        setUsedMessages((prev) => (prev !== null ? prev + 1 : 1));
+        const newCount = usedMessages + 1;
+        setUsedMessages(newCount);
+        if (newCount >= FREE_DAILY_LIMIT) {
+          setLimited(true);
+        }
       }
     }
   }, [input, isLoading, limited, messages, toast]);
