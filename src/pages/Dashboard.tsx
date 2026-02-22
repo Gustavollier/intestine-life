@@ -91,18 +91,33 @@ export default function Dashboard() {
 
   // Analysis usage tracking for free users
   const [analysisUsedToday, setAnalysisUsedToday] = useState<number | null>(null);
+  const [monthlyAnalysisUsed, setMonthlyAnalysisUsed] = useState<number | null>(null);
   const FREE_ANALYSIS_DAILY = 1;
-  const FREE_ANALYSIS_MONTHLY = 3;
+  const FREE_ANALYSIS_MONTHLY = 1;
+
+  const dailyLimitReached = userPlan === "free" && analysisUsedToday !== null && analysisUsedToday >= FREE_ANALYSIS_DAILY;
+  const monthlyLimitReached = userPlan === "free" && monthlyAnalysisUsed !== null && monthlyAnalysisUsed >= FREE_ANALYSIS_MONTHLY;
 
   useEffect(() => {
     if (userPlan === "free" && profileLoaded) {
       const fetchAnalysisUsage = async () => {
         const today = new Date().toISOString().split("T")[0];
-        const { count } = await supabase
+        const { count: dailyCount } = await supabase
           .from("analysis_usage")
           .select("*", { count: "exact", head: true })
-          .eq("reference_date", today);
-        setAnalysisUsedToday(count || 0);
+          .eq("reference_date", today)
+          .eq("analysis_type", "day");
+        setAnalysisUsedToday(dailyCount || 0);
+
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        const monthKey = monthStart.toISOString().split("T")[0];
+        const { count: monthlyCount } = await supabase
+          .from("analysis_usage")
+          .select("*", { count: "exact", head: true })
+          .gte("reference_date", monthKey)
+          .eq("analysis_type", "month");
+        setMonthlyAnalysisUsed(monthlyCount || 0);
       };
       fetchAnalysisUsage();
     }
@@ -179,8 +194,10 @@ export default function Dashboard() {
 
   const handleAnalyzeDay = async () => {
     if (!selectedDate) return;
-
-    setAnalysisLoading(true);
+    if (dailyLimitReached) {
+      setUpgradeModalOpen(true);
+      return;
+    }
     setAnalysisText(null);
     setAnalysisDate(selectedDate);
     setAnalysisType("day");
@@ -224,6 +241,10 @@ export default function Dashboard() {
         throw error;
       }
       setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+      // Update usage counter for free users
+      if (userPlan === "free") {
+        setAnalysisUsedToday((prev) => (prev !== null ? prev + 1 : 1));
+      }
     } catch (e: any) {
       console.error("Analysis error:", e);
       setAnalysisText("Não foi possível gerar a análise. Tente novamente.");
@@ -233,8 +254,11 @@ export default function Dashboard() {
   };
 
   const handleAnalyzeMonth = async () => {
+    if (monthlyLimitReached) {
+      setUpgradeModalOpen(true);
+      return;
+    }
     const monthKey = format(currentMonth, "yyyy-MM");
-
     setMonthlyAnalysisLoading(true);
     setMonthlyAnalysisText(null);
     setMonthlyAnalysisMonth(monthKey);
@@ -307,6 +331,9 @@ export default function Dashboard() {
         throw error;
       }
       setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
+      if (userPlan === "free") {
+        setMonthlyAnalysisUsed((prev) => (prev !== null ? prev + 1 : 1));
+      }
     } catch (e: any) {
       console.error("Monthly analysis error:", e);
       setMonthlyAnalysisText("Não foi possível gerar a análise mensal. Tente novamente.");
@@ -513,18 +540,22 @@ export default function Dashboard() {
               );
               return (
                   <Button
-                    onClick={handleAnalyzeMonth}
+                    onClick={monthlyLimitReached ? () => setUpgradeModalOpen(true) : handleAnalyzeMonth}
                     disabled={monthlyAnalysisLoading}
                     variant="outline"
-                    className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
+                    className={`h-12 rounded-xl text-base font-semibold gap-2 w-full ${monthlyLimitReached ? "border-muted text-muted-foreground" : "border-primary/30 text-primary hover:bg-primary/10"}`}
                   >
                     {monthlyAnalysisLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : monthlyLimitReached ? (
+                      <Lock className="w-5 h-5" />
                     ) : (
                       <CalendarDays className="w-5 h-5" />
                     )}
                     {monthlyAnalysisLoading
                       ? "Analisando mês..."
+                      : monthlyLimitReached
+                      ? "Limite mensal atingido"
                       : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
                   </Button>
                 );
@@ -574,18 +605,20 @@ export default function Dashboard() {
                 {hasDayData && (
                   <div className="mb-3">
                     <Button
-                      onClick={handleAnalyzeDay}
+                      onClick={dailyLimitReached ? () => setUpgradeModalOpen(true) : handleAnalyzeDay}
                       disabled={analysisLoading}
                       variant="outline"
                       size="sm"
-                      className="w-full rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                      className={`w-full rounded-xl gap-2 border-primary/30 ${dailyLimitReached ? "text-muted-foreground border-muted" : "text-primary hover:bg-primary/10"}`}
                     >
                       {analysisLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : dailyLimitReached ? (
+                        <Lock className="w-4 h-4" />
                       ) : (
                         <Bot className="w-4 h-4" />
                       )}
-                      {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
+                      {analysisLoading ? "Analisando..." : dailyLimitReached ? "Limite diário atingido" : "Analisar dia com Dr. Intestine"}
                     </Button>
                     {userPlan === "free" && analysisUsedToday !== null && (
                       <p className="text-[10px] text-muted-foreground text-center mt-1">

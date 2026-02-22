@@ -32,7 +32,7 @@ const Login = forwardRef<HTMLDivElement>((_props, ref) => {
     if (error) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
     } else {
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     }
   };
 
