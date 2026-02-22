@@ -14,6 +14,7 @@ import BristolScale from "@/pages/BristolScale";
 import NotFound from "@/pages/NotFound";
 import Profile from "@/pages/Profile";
 import DigestiveGuide from "@/pages/DigestiveGuide";
+import Clinics from "@/pages/Clinics";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => {
           <Route path="/bristol-scale" element={<ProtectedRoute><BristolScale /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/digestive-guide" element={<ProtectedRoute><DigestiveGuide /></ProtectedRoute>} />
+          <Route path="/clinics" element={<ProtectedRoute><Clinics /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

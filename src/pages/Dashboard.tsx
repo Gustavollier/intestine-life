@@ -15,7 +15,7 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { GamificationCard } from "@/components/GamificationCard";
 import { InsightsCard } from "@/components/InsightsCard";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb, Menu, MapPin } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -401,6 +401,9 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/clinics")} className="rounded-full" title="Encontrar Consultórios">
+                <MapPin className="w-5 h-5" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
                 <BookOpen className="w-5 h-5" />
               </Button>
@@ -425,6 +428,10 @@ export default function Dashboard() {
             <SheetTitle className="text-left text-sm">Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col p-2 gap-1">
+            <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { navigate("/clinics"); setMobileMenuOpen(false); }}>
+              <MapPin className="w-5 h-5" />
+              <span>Consultórios</span>
+            </Button>
             <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { navigate("/digestive-guide"); setMobileMenuOpen(false); }}>
               <BookOpen className="w-5 h-5" />
               <span>Guia Digestivo</span>
