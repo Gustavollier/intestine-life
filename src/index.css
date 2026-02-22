@@ -95,7 +95,7 @@
 
 /* Custom styled scrollbar */
 .styled-scroll::-webkit-scrollbar {
-  width: 3px;
+  width: 2px;
 }
 .styled-scroll::-webkit-scrollbar-track {
   background: transparent;
@@ -104,8 +104,12 @@
   background: #00c75d;
   border-radius: 9999px;
 }
-.styled-scroll::-webkit-scrollbar-button {
-  display: none;
+.styled-scroll::-webkit-scrollbar-button:start:decrement,
+.styled-scroll::-webkit-scrollbar-button:end:increment {
+  width: 0;
+  height: 0;
+  display: block;
+  background: transparent;
 }
 .styled-scroll {
   scrollbar-width: thin;
