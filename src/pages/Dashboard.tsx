@@ -31,6 +31,7 @@ import bristolType7 from "@/assets/bristol/type7.png";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 import ReactMarkdown from "react-markdown";
 
 // Preload Bristol scale images and wash-hands illustration
@@ -54,8 +55,8 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState("usuário");
   const { toast } = useToast();
+  const { profile: cachedProfile, loading: profileLoading, updateCachedPlan } = useProfile();
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
   const { entries: allHydrationEntries, addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
@@ -83,9 +84,10 @@ export default function Dashboard() {
   const [monthlyAnalysisLoading, setMonthlyAnalysisLoading] = useState(false);
   const [monthlyAnalysisMonth, setMonthlyAnalysisMonth] = useState<string | null>(null);
 
-  // Plan state
-  const [userPlan, setUserPlan] = useState("free");
-  const [profileLoaded, setProfileLoaded] = useState(false);
+  // Plan derived from cached profile
+  const userPlan = cachedProfile?.plan || "free";
+  const username = cachedProfile?.name?.split(" ")[0] || "usuário";
+  const profileLoaded = !profileLoading;
 
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
@@ -106,19 +108,11 @@ export default function Dashboard() {
     }
   }, [location.state]);
 
+  // Redirect if not authenticated
   useEffect(() => {
-    const getProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/");
-        return;
-      }
-      const { data } = await supabase.from("profiles").select("name, plan").eq("user_id", user.id).maybeSingle();
-      if (data?.name) setUsername(data.name.split(" ")[0]);
-      if (data?.plan) setUserPlan(data.plan);
-      setProfileLoaded(true);
-    };
-    getProfile();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) navigate("/");
+    });
   }, [navigate]);
 
   const datesWithNotes = getDatesWithNotes();
@@ -749,29 +743,29 @@ export default function Dashboard() {
                             const displayDifficulty = difficultyDisplayMap[note.difficulty] || "Normal";
                             return (
                               <div key={note.id} className="border border-border rounded-xl p-3">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                                    <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full shrink-0">
                                       #{idx + 1}
                                     </span>
-                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${difficultyColors[displayDifficulty] || ""}`}>
+                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${difficultyColors[displayDifficulty] || ""}`}>
                                       {displayDifficulty}
                                     </span>
                                     {note.bristol_scale && (
-                                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <img src={bristolImages[note.bristol_scale - 1]} alt={`Bristol ${note.bristol_scale}`} className="w-5 h-5 object-contain" />
-                                        Tipo {note.bristol_scale}
+                                      <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                                        <img src={bristolImages[note.bristol_scale - 1]} alt={`Bristol ${note.bristol_scale}`} className="w-5 h-5 object-contain" loading="eager" />
+                                        T{note.bristol_scale}
                                       </span>
                                     )}
-                                    <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                                      <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration} min
+                                    <span className="text-xs text-muted-foreground flex items-center gap-0.5 shrink-0">
+                                      <Clock className="w-3 h-3" /> {note.time_of_day ? note.time_of_day.slice(0, 5) : "--:--"} · {note.duration}min
                                     </span>
                                   </div>
-                                  <div className="flex gap-1">
-                                    <button onClick={() => handleEditNote(note)} className="p-1.5 hover:bg-muted rounded">
+                                  <div className="flex gap-0.5 shrink-0">
+                                    <button onClick={() => handleEditNote(note)} className="p-1 hover:bg-muted rounded">
                                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
-                                    <button onClick={() => deleteNote(note.id)} className="p-1.5 hover:bg-destructive/10 rounded">
+                                    <button onClick={() => deleteNote(note.id)} className="p-1 hover:bg-destructive/10 rounded">
                                       <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
                                   </div>
