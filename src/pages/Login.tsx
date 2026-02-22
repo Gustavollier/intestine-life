@@ -30,7 +30,15 @@ const Login = forwardRef<HTMLDivElement>((_props, ref) => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+      let msg = "Verifique suas credenciais e tente novamente.";
+      if (error.message?.includes("Invalid login credentials")) {
+        msg = "Email ou senha incorretos.";
+      } else if (error.message?.includes("Email not confirmed")) {
+        msg = "Seu email ainda não foi confirmado. Verifique sua caixa de entrada.";
+      } else if (error.message?.includes("Too many requests")) {
+        msg = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+      }
+      toast({ title: "Erro ao entrar", description: msg, variant: "destructive" });
     } else {
       navigate("/dashboard", { replace: true });
     }

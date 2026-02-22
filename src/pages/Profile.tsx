@@ -21,6 +21,7 @@ export default function Profile() {
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -97,6 +98,10 @@ export default function Profile() {
   };
 
   const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      toast({ title: "Digite sua senha atual", variant: "destructive" });
+      return;
+    }
     if (newPassword.length < 6) {
       toast({ title: "A nova senha deve ter pelo menos 6 caracteres", variant: "destructive" });
       return;
@@ -106,11 +111,24 @@ export default function Profile() {
       return;
     }
     setChangingPassword(true);
+
+    // Verify current password by re-signing in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPassword,
+    });
+    if (signInError) {
+      toast({ title: "Senha atual incorreta", variant: "destructive" });
+      setChangingPassword(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast({ title: "Erro ao alterar senha", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Senha alterada com sucesso!" });
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -240,6 +258,10 @@ export default function Profile() {
             <h2 className="font-semibold text-foreground">Alterar senha</h2>
           </div>
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="current-password">Senha atual</Label>
+              <Input id="current-password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Digite sua senha atual" />
+            </div>
             <div>
               <Label htmlFor="new-password">Nova senha</Label>
               <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
