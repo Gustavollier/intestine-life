@@ -95,19 +95,19 @@
 
 /* Custom styled scrollbar */
 .styled-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 .styled-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 .styled-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.3);
+  background: #00c75d;
   border-radius: 9999px;
 }
-.styled-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.5);
+.styled-scroll::-webkit-scrollbar-button {
+  display: none;
 }
 .styled-scroll {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--primary) / 0.3) transparent;
+  scrollbar-color: #00c75d transparent;
 }
