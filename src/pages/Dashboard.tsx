@@ -446,8 +446,8 @@ export default function Dashboard() {
 
         {/* Insights Modal */}
         <Dialog open={insightsModalOpen} onOpenChange={setInsightsModalOpen}>
-          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden mx-4">
-            <InsightsCard />
+          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden w-[calc(100%-2rem)] max-w-lg">
+            <InsightsCard onUpgrade={() => { setInsightsModalOpen(false); setUpgradeModalOpen(true); }} />
           </DialogContent>
         </Dialog>
 
