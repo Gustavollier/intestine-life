@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Droplets, UtensilsCrossed, Flame, TrendingUp, TrendingDown, Clock, CalendarDays, Lightbulb, Loader2, RefreshCw, Lock } from "lucide-react";
+import { Droplets, UtensilsCrossed, Flame, TrendingUp, TrendingDown, Clock, CalendarDays, Lightbulb, Loader2, RefreshCw, Lock, Crown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,11 @@ const iconMap: Record<string, React.ReactNode> = {
   calendar: <CalendarDays className="w-4 h-4 shrink-0" />,
 };
 
-export function InsightsCard() {
+interface InsightsCardProps {
+  onUpgrade?: () => void;
+}
+
+export function InsightsCard({ onUpgrade }: InsightsCardProps) {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -100,6 +104,12 @@ export function InsightsCard() {
           <h3 className="font-semibold text-foreground text-sm">Insights</h3>
         </div>
         <p className="text-sm text-muted-foreground text-center py-4">{error}</p>
+        {limited && onUpgrade && (
+          <Button onClick={onUpgrade} className="w-full gap-2 rounded-xl">
+            <Crown className="w-4 h-4" />
+            Seja Pro
+          </Button>
+        )}
       </div>
     );
   }
