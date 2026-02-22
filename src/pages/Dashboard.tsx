@@ -83,11 +83,9 @@ export default function Dashboard() {
   const [monthlyAnalysisLoading, setMonthlyAnalysisLoading] = useState(false);
   const [monthlyAnalysisMonth, setMonthlyAnalysisMonth] = useState<string | null>(null);
 
-  // Plan & analysis limits
+  // Plan state
   const [userPlan, setUserPlan] = useState("free");
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [dayAnalysisCount, setDayAnalysisCount] = useState<Record<string, number>>({});
-  const [monthAnalysisUsed, setMonthAnalysisUsed] = useState<Set<string>>(new Set());
 
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
@@ -118,24 +116,6 @@ export default function Dashboard() {
       const { data } = await supabase.from("profiles").select("name, plan").eq("user_id", user.id).maybeSingle();
       if (data?.name) setUsername(data.name.split(" ")[0]);
       if (data?.plan) setUserPlan(data.plan);
-
-      // Load analysis usage for free plan limits
-      const { data: usageData } = await supabase
-        .from("analysis_usage")
-        .select("analysis_type, reference_date")
-        .eq("user_id", user.id);
-      if (usageData) {
-        const dayCounts: Record<string, number> = {};
-        const months = new Set<string>();
-        usageData.forEach((u: any) => {
-          if (u.analysis_type === "day") {
-            dayCounts[u.reference_date] = (dayCounts[u.reference_date] || 0) + 1;
-          }
-          if (u.analysis_type === "month") months.add(u.reference_date);
-        });
-        setDayAnalysisCount(dayCounts);
-        setMonthAnalysisUsed(months);
-      }
       setProfileLoaded(true);
     };
     getProfile();
@@ -184,24 +164,8 @@ export default function Dashboard() {
     }
   };
 
-  const recordAnalysisUsage = async (type: "day" | "month", refDate: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("analysis_usage").insert({
-      user_id: user.id,
-      analysis_type: type,
-      reference_date: refDate,
-    });
-    if (type === "day") setDayAnalysisCount(prev => ({ ...prev, [refDate]: (prev[refDate] || 0) + 1 }));
-    else setMonthAnalysisUsed(prev => new Set(prev).add(refDate));
-  };
-
   const handleAnalyzeDay = async () => {
     if (!selectedDate) return;
-
-    // Free plan: 3 analyses per date
-    const isDayLocked = userPlan === "free" && (dayAnalysisCount[selectedDate] || 0) >= 3;
-    if (isDayLocked) return;
 
     setAnalysisLoading(true);
     setAnalysisText(null);
@@ -234,13 +198,19 @@ export default function Dashboard() {
         body: { date: formattedDate, evacuations, meals, hydration: hydrationData },
       });
 
-      if (error) throw error;
-      setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
-
-      // Record usage for free plan
-      if (userPlan === "free") {
-        await recordAnalysisUsage("day", selectedDate);
+      if (error) {
+        // Check for 429 limit
+        try {
+          const parsed = typeof error === "string" ? JSON.parse(error) : error;
+          if (parsed?.message?.includes("429") || parsed?.context?.status === 429) {
+            setUpgradeModalOpen(true);
+            setAnalysisLoading(false);
+            return;
+          }
+        } catch {}
+        throw error;
       }
+      setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
     } catch (e: any) {
       console.error("Analysis error:", e);
       setAnalysisText("Não foi possível gerar a análise. Tente novamente.");
@@ -251,10 +221,6 @@ export default function Dashboard() {
 
   const handleAnalyzeMonth = async () => {
     const monthKey = format(currentMonth, "yyyy-MM");
-
-    // Free plan: once per month
-    const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
-    if (isMonthLocked) return;
 
     setMonthlyAnalysisLoading(true);
     setMonthlyAnalysisText(null);
@@ -315,13 +281,19 @@ export default function Dashboard() {
         },
       });
 
-      if (error) throw error;
-      setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
-
-      // Record usage for free plan
-      if (userPlan === "free") {
-        await recordAnalysisUsage("month", monthKey);
+      if (error) {
+        // Check for 429 limit
+        try {
+          const parsed = typeof error === "string" ? JSON.parse(error) : error;
+          if (parsed?.message?.includes("429") || parsed?.context?.status === 429) {
+            setUpgradeModalOpen(true);
+            setMonthlyAnalysisLoading(false);
+            return;
+          }
+        } catch {}
+        throw error;
       }
+      setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
     } catch (e: any) {
       console.error("Monthly analysis error:", e);
       setMonthlyAnalysisText("Não foi possível gerar a análise mensal. Tente novamente.");
@@ -516,8 +488,6 @@ export default function Dashboard() {
 
             {/* Monthly Analysis Button */}
             {(() => {
-              const monthKey = format(currentMonth, "yyyy-MM");
-              const isMonthLocked = userPlan === "free" && monthAnalysisUsed.has(monthKey);
               if (!profileLoaded) return (
                 <Button
                   disabled
@@ -528,16 +498,7 @@ export default function Dashboard() {
                   Carregando...
                 </Button>
               );
-              return isMonthLocked ? (
-                  <Button
-                    onClick={() => setUpgradeModalOpen(true)}
-                    variant="outline"
-                    className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 w-full"
-                  >
-                    <Lock className="w-5 h-5" />
-                    Assine o PRO para mais análises
-                  </Button>
-                ) : (
+              return (
                   <Button
                     onClick={handleAnalyzeMonth}
                     disabled={monthlyAnalysisLoading}
@@ -597,19 +558,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Analyze day button inside card */}
-                {hasDayData && (() => {
-                  const isDayLocked = userPlan === "free" && selectedDate && (dayAnalysisCount[selectedDate] || 0) >= 3;
-                  return isDayLocked ? (
-                      <Button
-                        onClick={() => setUpgradeModalOpen(true)}
-                        variant="outline"
-                        size="sm"
-                        className="w-full mb-3 rounded-xl gap-2 border-primary/30 text-primary hover:bg-primary/10"
-                      >
-                        <Lock className="w-4 h-4" />
-                        Assine o PRO para mais análises
-                      </Button>
-                    ) : (
+                {hasDayData && (
                       <Button
                         onClick={handleAnalyzeDay}
                         disabled={analysisLoading}
@@ -624,8 +573,7 @@ export default function Dashboard() {
                         )}
                         {analysisLoading ? "Analisando..." : "Analisar dia com Dr. Intestine"}
                       </Button>
-                    );
-                })()}
+                )}
 
                 {/* Day AI Analysis Card (inline) */}
                 {analysisText && analysisDate === selectedDate && (
