@@ -13,6 +13,7 @@ import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ProUpgradeModal } from "@/components/ProUpgradeModal";
+import { GamificationCard } from "@/components/GamificationCard";
 import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import washHandsSvg from "@/assets/undraw-wash-hands.svg";
@@ -785,6 +786,11 @@ export default function Dashboard() {
           <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
             <WeeklyHydrationChart entries={allHydrationEntries} goalMl={hydrationGoal} />
           </Card>
+        </div>
+
+        {/* Gamification */}
+        <div className="mt-6">
+          <GamificationCard />
         </div>
       </main>
 
