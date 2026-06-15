@@ -11,11 +11,9 @@ import { FoodDiaryDialog } from "@/components/FoodDiaryDialog";
 import { HydrationProgress } from "@/components/HydrationProgress";
 import { WeeklyHydrationChart } from "@/components/WeeklyHydrationChart";
 import { Difficulty } from "@/types/note";
-import { ChatWidget } from "@/components/ChatWidget";
-import { ProUpgradeModal } from "@/components/ProUpgradeModal";
 import { GamificationCard } from "@/components/GamificationCard";
-import { InsightsCard } from "@/components/InsightsCard";
-import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Bot, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, Lock, BookOpen, Crown, Lightbulb, Menu, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Plus, Pencil, Trash2, Clock, X, UtensilsCrossed, Loader2, Droplets, GlassWater, CalendarDays, UserCircle, BookOpen, Menu, MapPin } from "lucide-react";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
