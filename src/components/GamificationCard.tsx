@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Flame, Trophy, Star, Droplets, UtensilsCrossed, ClipboardList, CheckCircle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { registerCacheClearer } from "@/lib/cacheRegistry";
 
 interface Badge {
   id: string;
@@ -35,6 +36,7 @@ const iconMap: Record<string, React.ReactNode> = {
 let cachedGamification: GamificationData | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+registerCacheClearer(() => { cachedGamification = null; cacheTimestamp = 0; });
 
 export function GamificationCard() {
   const [data, setData] = useState<GamificationData | null>(cachedGamification);

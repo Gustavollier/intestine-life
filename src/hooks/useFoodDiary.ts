@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { registerCacheClearer } from "@/lib/cacheRegistry";
 
 export type MealType = "breakfast" | "lunch" | "snack" | "dinner" | "other";
 
@@ -25,6 +26,7 @@ const mealTypeLabels: Record<MealType, string> = {
 let cachedEntries: FoodEntry[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000;
+registerCacheClearer(() => { cachedEntries = null; cacheTimestamp = 0; });
 
 export function useFoodDiary() {
   const [entries, setEntries] = useState<FoodEntry[]>(cachedEntries || []);

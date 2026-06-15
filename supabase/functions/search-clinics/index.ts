@@ -36,14 +36,24 @@ serve(async (req) => {
       );
     }
 
-    const { lat, lng, radius = 10000, query = "proctologista" } = await req.json();
+    const body = await req.json();
+    const lat = Number(body.lat);
+    const lng = Number(body.lng);
+    let radius = body.radius === undefined ? 10000 : Number(body.radius);
+    const queryRaw = typeof body.query === "string" ? body.query : "proctologista";
 
-    if (!lat || !lng) {
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 ||
+        !Number.isFinite(lng) || lng < -180 || lng > 180) {
       return new Response(
-        JSON.stringify({ error: "lat e lng são obrigatórios" }),
+        JSON.stringify({ error: "Coordenadas inválidas" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (!Number.isFinite(radius)) radius = 10000;
+    radius = Math.max(1, Math.min(50000, Math.round(radius)));
+
+    const query = queryRaw.trim().slice(0, 200) || "proctologista";
 
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!apiKey) {

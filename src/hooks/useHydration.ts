@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { registerCacheClearer } from "@/lib/cacheRegistry";
 
 export type HydrationType = "bottle" | "cup";
 
@@ -26,6 +27,7 @@ const typeMl: Record<HydrationType, number> = {
 let cachedEntries: HydrationEntry[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000;
+registerCacheClearer(() => { cachedEntries = null; cacheTimestamp = 0; });
 
 export function useHydration() {
   const [entries, setEntries] = useState<HydrationEntry[]>(cachedEntries || []);
