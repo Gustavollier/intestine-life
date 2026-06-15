@@ -131,7 +131,7 @@ export function useNotes() {
       )
     );
 
-    const { error } = await supabase.from("evacuations").update(updates).eq("id", id);
+    const { error } = await supabase.from("evacuations").update(updates as never).eq("id", id);
 
     if (error) {
       setNotes(previousNotes);
