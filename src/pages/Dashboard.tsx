@@ -30,7 +30,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
-import ReactMarkdown from "react-markdown";
+
 
 // Preload Bristol scale images and wash-hands illustration
 const bristolImages = [bristolType1, bristolType2, bristolType3, bristolType4, bristolType5, bristolType6, bristolType7];
@@ -54,7 +54,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { profile: cachedProfile, loading: profileLoading, updateCachedPlan } = useProfile();
+  const { profile: cachedProfile, loading: profileLoading } = useProfile();
   const { addNote, updateNote, deleteNote, getNotesForDate, getDatesWithNotes, difficultyDisplayMap, loading: notesLoading } = useNotes();
   const { addEntry, updateEntry, deleteEntry, getEntriesForDate, getDatesWithEntries, mealTypeLabels, loading: foodLoading } = useFoodDiary();
   const { entries: allHydrationEntries, addEntry: addHydration, deleteEntry: deleteHydration, getEntriesForDate: getHydrationForDate, getDatesWithEntries: getDatesWithHydration, getTotalMlForDate, typeLabels: hydrationLabels, loading: hydrationLoading } = useHydration();
@@ -66,60 +66,10 @@ export default function Dashboard() {
   const [editingNote, setEditingNote] = useState<Evacuation | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>("food");
   const [editingFoodEntry, setEditingFoodEntry] = useState<import("@/hooks/useFoodDiary").FoodEntry | undefined>();
-  // PRO upgrade modal
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [insightsModalOpen, setInsightsModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // AI Analysis state
-  const [analysisText, setAnalysisText] = useState<string | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisDate, setAnalysisDate] = useState<string | null>(null);
-  const [analysisType, setAnalysisType] = useState<"day" | "month">("day");
-
-  // Monthly analysis state
-  const [monthlyAnalysisText, setMonthlyAnalysisText] = useState<string | null>(null);
-  const [monthlyAnalysisLoading, setMonthlyAnalysisLoading] = useState(false);
-  const [monthlyAnalysisMonth, setMonthlyAnalysisMonth] = useState<string | null>(null);
-
-  // Plan derived from cached profile
-  const userPlan = cachedProfile?.plan || "free";
   const username = cachedProfile?.name?.split(" ")[0] || "usuário";
   const profileLoaded = !profileLoading;
-
-  // Analysis usage tracking for free users
-  const [analysisUsedToday, setAnalysisUsedToday] = useState<number | null>(null);
-  const [monthlyAnalysisUsed, setMonthlyAnalysisUsed] = useState<number | null>(null);
-  const FREE_ANALYSIS_DAILY = 1;
-  const FREE_ANALYSIS_MONTHLY = 1;
-
-  const dailyLimitReached = userPlan === "free" && analysisUsedToday !== null && analysisUsedToday >= FREE_ANALYSIS_DAILY;
-  const monthlyLimitReached = userPlan === "free" && monthlyAnalysisUsed !== null && monthlyAnalysisUsed >= FREE_ANALYSIS_MONTHLY;
-
-  useEffect(() => {
-    if (userPlan === "free" && profileLoaded) {
-      const fetchAnalysisUsage = async () => {
-        const today = new Date().toISOString().split("T")[0];
-        const { count: dailyCount } = await supabase
-          .from("analysis_usage")
-          .select("*", { count: "exact", head: true })
-          .eq("reference_date", today)
-          .eq("analysis_type", "day");
-        setAnalysisUsedToday(dailyCount || 0);
-
-        const monthStart = new Date();
-        monthStart.setDate(1);
-        const monthKey = monthStart.toISOString().split("T")[0];
-        const { count: monthlyCount } = await supabase
-          .from("analysis_usage")
-          .select("*", { count: "exact", head: true })
-          .gte("reference_date", monthKey)
-          .eq("analysis_type", "month");
-        setMonthlyAnalysisUsed(monthlyCount || 0);
-      };
-      fetchAnalysisUsage();
-    }
-  }, [userPlan, profileLoaded]);
 
   const [hydrationGoal, setHydrationGoal] = useState(() => {
     const saved = localStorage.getItem("hydration_goal_ml");
@@ -190,152 +140,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleAnalyzeDay = async () => {
-    if (!selectedDate) return;
-    if (dailyLimitReached) {
-      setUpgradeModalOpen(true);
-      return;
-    }
-    setAnalysisLoading(true);
-    setAnalysisText(null);
-    setAnalysisDate(selectedDate);
-    setAnalysisType("day");
-
-    try {
-      const evacuations = selectedNotes.map(n => ({
-        difficulty: difficultyDisplayMap[n.difficulty] || n.difficulty,
-        duration: n.duration,
-        bristol_scale: n.bristol_scale,
-        time_of_day: n.time_of_day,
-        observations: n.observations,
-      }));
-
-      const meals = selectedFoodEntries.map(e => ({
-        meal_type: mealTypeLabels[e.meal_type],
-        description: e.description,
-      }));
-
-      const hydrationData = selectedHydrationEntries.length > 0 ? {
-        totalMl: selectedHydrationTotal,
-        bottles: selectedHydrationEntries.filter(e => e.type === "bottle").length,
-        cups: selectedHydrationEntries.filter(e => e.type === "cup").length,
-      } : null;
-
-      const formattedDate = format(parseISO(selectedDate), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
-
-      const { data, error } = await supabase.functions.invoke("analyze-day", {
-        body: { date: formattedDate, evacuations, meals, hydration: hydrationData },
-      });
-
-      if (error) {
-        // Check for 429 limit — immediately block button
-        const errMsg = typeof error === "object" ? error?.message || "" : String(error);
-        if (errMsg.includes("429") || errMsg.includes("Limite")) {
-          setAnalysisUsedToday(FREE_ANALYSIS_DAILY);
-          setUpgradeModalOpen(true);
-          return;
-        }
-        throw error;
-      }
-      setAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
-      // Immediately update usage counter for free users
-      if (userPlan === "free") {
-        setAnalysisUsedToday((prev) => (prev !== null ? prev + 1 : 1));
-      }
-    } catch (e: any) {
-      console.error("Analysis error:", e);
-      setAnalysisText("Não foi possível gerar a análise. Tente novamente.");
-    } finally {
-      setAnalysisLoading(false);
-    }
-  };
-
-  const handleAnalyzeMonth = async () => {
-    if (monthlyLimitReached) {
-      setUpgradeModalOpen(true);
-      return;
-    }
-    const monthKey = format(currentMonth, "yyyy-MM");
-    setMonthlyAnalysisLoading(true);
-    setMonthlyAnalysisText(null);
-    setMonthlyAnalysisMonth(monthKey);
-
-    try {
-      const start = startOfMonth(currentMonth);
-      const end = endOfMonth(currentMonth);
-      const allDaysInMonth = eachDayOfInterval({ start, end });
-
-      let totalEvacuations = 0;
-      let totalMeals = 0;
-      let totalHydrationMl = 0;
-      let daysWithData = 0;
-      const difficultyCounts: Record<string, number> = {};
-      const bristolCounts: Record<number, number> = {};
-
-      for (const day of allDaysInMonth) {
-        const dateStr = format(day, "yyyy-MM-dd");
-        const dayNotes = getNotesForDate(dateStr);
-        const dayFood = getEntriesForDate(dateStr);
-        const dayHydration = getTotalMlForDate(dateStr);
-
-        if (dayNotes.length > 0 || dayFood.length > 0 || dayHydration > 0) {
-          daysWithData++;
-        }
-
-        totalEvacuations += dayNotes.length;
-        totalMeals += dayFood.length;
-        totalHydrationMl += dayHydration;
-
-        dayNotes.forEach(n => {
-          const diff = difficultyDisplayMap[n.difficulty] || n.difficulty;
-          difficultyCounts[diff] = (difficultyCounts[diff] || 0) + 1;
-          if (n.bristol_scale) {
-            bristolCounts[n.bristol_scale] = (bristolCounts[n.bristol_scale] || 0) + 1;
-          }
-        });
-      }
-
-      const formattedMonth = format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR });
-
-      const monthSummary = `Resumo do mês de ${formattedMonth}:
-- Dias com registros: ${daysWithData}/${allDaysInMonth.length}
-- Total de evacuações: ${totalEvacuations}
-- Dificuldade: ${Object.entries(difficultyCounts).map(([k, v]) => `${k}: ${v}`).join(", ") || "sem dados"}
-- Bristol: ${Object.entries(bristolCounts).map(([k, v]) => `tipo ${k}: ${v}x`).join(", ") || "sem dados"}
-- Total de refeições: ${totalMeals}
-- Hidratação total: ${totalHydrationMl}ml (média: ${daysWithData > 0 ? Math.round(totalHydrationMl / daysWithData) : 0}ml/dia)`;
-
-      const { data, error } = await supabase.functions.invoke("analyze-day", {
-        body: {
-          date: `mês de ${formattedMonth}`,
-          evacuations: [],
-          meals: [],
-          hydration: daysWithData > 0 ? { totalMl: totalHydrationMl, bottles: 0, cups: 0 } : null,
-          monthSummary,
-        },
-      });
-
-      if (error) {
-        const errMsg = typeof error === "object" ? error?.message || "" : String(error);
-        if (errMsg.includes("429") || errMsg.includes("Limite")) {
-          setMonthlyAnalysisUsed(FREE_ANALYSIS_MONTHLY);
-          setUpgradeModalOpen(true);
-          setMonthlyAnalysisLoading(false);
-          return;
-        }
-        throw error;
-      }
-      setMonthlyAnalysisText(data.analysis || data.error || "Erro ao gerar análise.");
-      if (userPlan === "free") {
-        setMonthlyAnalysisUsed((prev) => (prev !== null ? prev + 1 : 1));
-      }
-    } catch (e: any) {
-      console.error("Monthly analysis error:", e);
-      setMonthlyAnalysisText("Não foi possível gerar a análise mensal. Tente novamente.");
-    } finally {
-      setMonthlyAnalysisLoading(false);
-    }
-  };
 
   const editingNoteForDialog = editingNote
     ? {
@@ -405,9 +209,6 @@ export default function Dashboard() {
               <Button variant="ghost" size="icon" onClick={() => navigate("/digestive-guide")} className="rounded-full" title="Guia Digestivo">
                 <BookOpen className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setInsightsModalOpen(true)} className="rounded-full" title="Insights Inteligentes">
-                <Lightbulb className="w-5 h-5" />
-              </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/profile")} className="rounded-full">
                 <UserCircle className="w-5 h-5" />
               </Button>
@@ -434,10 +235,6 @@ export default function Dashboard() {
               <BookOpen className="w-5 h-5" />
               <span>Guia Digestivo</span>
             </Button>
-            <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { setInsightsModalOpen(true); setMobileMenuOpen(false); }}>
-              <Lightbulb className="w-5 h-5" />
-              <span>Insights</span>
-            </Button>
             <Button variant="ghost" className="justify-start gap-3 rounded-xl" onClick={() => { navigate("/profile"); setMobileMenuOpen(false); }}>
               <UserCircle className="w-5 h-5" />
               <span>Perfil</span>
@@ -458,12 +255,6 @@ export default function Dashboard() {
           <GamificationCard />
         </div>
 
-        {/* Insights Modal */}
-        <Dialog open={insightsModalOpen} onOpenChange={setInsightsModalOpen}>
-          <DialogContent className="sm:max-w-lg rounded-3xl border-primary/20 p-0 gap-0 overflow-hidden w-[calc(100%-2rem)] max-w-lg">
-            <InsightsCard onUpgrade={() => { setInsightsModalOpen(false); setUpgradeModalOpen(true); }} />
-          </DialogContent>
-        </Dialog>
 
         <h2 className="text-xl font-bold text-foreground mb-4">Acompanhamento mensal</h2>
 
@@ -527,65 +318,6 @@ export default function Dashboard() {
                 </div>
             </Card>
 
-
-            {/* Monthly Analysis Button */}
-            {(() => {
-              if (!profileLoaded) return (
-                <Button
-                  disabled
-                  variant="outline"
-                  className="h-12 rounded-xl text-base font-semibold gap-2 border-primary/30 text-primary w-full"
-                >
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Carregando...
-                </Button>
-              );
-              return (
-                  <Button
-                    onClick={monthlyLimitReached ? () => setUpgradeModalOpen(true) : handleAnalyzeMonth}
-                    disabled={monthlyAnalysisLoading}
-                    variant="outline"
-                    className={`h-12 rounded-xl text-base font-semibold gap-2 w-full ${monthlyLimitReached ? "border-muted text-muted-foreground" : "border-primary/30 text-primary hover:bg-primary/10"}`}
-                  >
-                    {monthlyAnalysisLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : monthlyLimitReached ? (
-                      <Lock className="w-5 h-5" />
-                    ) : (
-                      <CalendarDays className="w-5 h-5" />
-                    )}
-                    {monthlyAnalysisLoading
-                      ? "Analisando mês..."
-                      : monthlyLimitReached
-                      ? "Limite mensal atingido"
-                      : `Análise mensal — ${format(currentMonth, "MMMM", { locale: ptBR })}`}
-                  </Button>
-                );
-            })()}
-
-            {/* Monthly AI Analysis Card */}
-            {monthlyAnalysisText && monthlyAnalysisMonth === format(currentMonth, "yyyy-MM") && (
-              <Card className="p-5 border border-primary/20 rounded-3xl shadow-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground text-sm">Dr. Intestine</h3>
-                    <p className="text-xs text-muted-foreground">Análise mensal — {format(currentMonth, "MMMM yyyy", { locale: ptBR })}</p>
-                  </div>
-                  <button
-                    onClick={() => { setMonthlyAnalysisText(null); setMonthlyAnalysisMonth(null); }}
-                    className="ml-auto p-1 hover:bg-muted rounded"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
-                <div className="text-sm text-foreground leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown>{monthlyAnalysisText}</ReactMarkdown>
-                </div>
-              </Card>
-            )}
           </div>
 
           {/* Side panel - show before hydration chart on mobile */}
@@ -602,54 +334,6 @@ export default function Dashboard() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-
-                {/* Analyze day button inside card */}
-                {hasDayData && (
-                  <div className="mb-3">
-                    <Button
-                      onClick={dailyLimitReached ? () => setUpgradeModalOpen(true) : handleAnalyzeDay}
-                      disabled={analysisLoading}
-                      variant="outline"
-                      size="sm"
-                      className={`w-full rounded-xl gap-2 border-primary/30 ${dailyLimitReached ? "text-muted-foreground border-muted" : "text-primary hover:bg-primary/10"}`}
-                    >
-                      {analysisLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : dailyLimitReached ? (
-                        <Lock className="w-4 h-4" />
-                      ) : (
-                        <Bot className="w-4 h-4" />
-                      )}
-                      {analysisLoading ? "Analisando..." : dailyLimitReached ? "Limite diário atingido" : "Analisar dia com Dr. Intestine"}
-                    </Button>
-                    {userPlan === "free" && analysisUsedToday !== null && (
-                      <p className="text-[10px] text-muted-foreground text-center mt-1">
-                        {Math.max(0, FREE_ANALYSIS_DAILY - analysisUsedToday)}/{FREE_ANALYSIS_DAILY} análise restante hoje
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Day AI Analysis Card (inline) */}
-                {analysisText && analysisDate === selectedDate && (
-                  <div className="mb-4 p-3 border border-primary/20 rounded-xl bg-primary/5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <Bot className="w-3 h-3 text-primary-foreground" />
-                      </div>
-                      <span className="font-semibold text-foreground text-xs">Dr. Intestine</span>
-                      <button
-                        onClick={() => { setAnalysisText(null); setAnalysisDate(null); }}
-                        className="ml-auto p-0.5 hover:bg-muted rounded"
-                      >
-                        <X className="w-3.5 h-3.5 text-muted-foreground" />
-                      </button>
-                    </div>
-                    <div className="text-xs text-foreground leading-relaxed prose prose-sm max-w-none">
-                      <ReactMarkdown>{analysisText}</ReactMarkdown>
-                    </div>
-                  </div>
-                )}
 
                 {/* Tabs - Order: Refeições, Água, Evacuações */}
                 <div className="flex gap-1 bg-muted rounded-xl p-1 mb-4">
@@ -884,8 +568,6 @@ export default function Dashboard() {
         </>
       )}
 
-      <ProUpgradeModal open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
-      <ChatWidget />
     </div>
   );
 }
