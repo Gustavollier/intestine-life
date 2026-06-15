@@ -33,6 +33,7 @@ const difficultyDisplayMap: Record<Difficulty, string> = {
 let cachedNotes: Evacuation[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+registerCacheClearer(() => { cachedNotes = null; cacheTimestamp = 0; });
 
 export function useNotes() {
   const [notes, setNotes] = useState<Evacuation[]>(cachedNotes || []);
