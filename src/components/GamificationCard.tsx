@@ -36,6 +36,8 @@ const iconMap: Record<string, React.ReactNode> = {
 let cachedGamification: GamificationData | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+registerCacheClearer(() => { cachedGamification = null; cacheTimestamp = 0; });
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export function GamificationCard() {
   const [data, setData] = useState<GamificationData | null>(cachedGamification);
