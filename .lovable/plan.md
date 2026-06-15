@@ -1,66 +1,65 @@
 
+# Remoção de IA e plano Pro do Intestine Life
 
-# Localizador de Consultórios de Proctologia
+Mantém só o que continua funcionando sem assinatura do Lovable: registros de evacuações, alimentação, hidratação, gamificação, escala de Bristol, guia digestivo, perfil, autenticação e o localizador de consultórios (usa Google Places com chave própria do usuário, não Lovable AI).
 
-## Como funciona
+## O que será removido
 
-1. O navegador pede permissão de localização ao usuário
-2. Com as coordenadas (latitude/longitude), uma função backend consulta a Google Places API buscando por "proctologista" ou "proctologia" próximos
-3. Os resultados são exibidos em cards com nome, endereço, telefone, avaliação e distância
-4. Opcionalmente, um mapa interativo mostra os consultórios no mapa
+### Funcionalidades de IA (Lovable AI)
+- Chatbot "Dr. Intestine" — botão flutuante e janela de chat
+- Análise do dia e do mês pelo Dr. Intestine (botões no calendário e no resumo do mês)
+- Card de "Insights Inteligentes" (correlações automáticas)
 
-## Arquitetura
+### Plano Pro / Stripe
+- Modal de upgrade (`ProUpgradeModal`)
+- Tela de checkout embutida (`StripeCheckout`)
+- Botões "Seja Pro", "Gerenciar assinatura", badge Crown/Pro no header e menu
+- Verificação de assinatura e portal do cliente na tela de Perfil
+- Limites diários (não fazem mais sentido sem IA)
 
-```text
-[Navegador]                    [Backend]                  [Google]
-    |                              |                          |
-    |-- navigator.geolocation ---->|                          |
-    |                              |-- Places API (nearby) -->|
-    |                              |<-- resultados ---------- |
-    |<-- lista de consultórios ----|                          |
-```
+## Arquivos a deletar
 
-## O que precisa ser feito
+Frontend:
+- `src/components/ChatWidget.tsx`
+- `src/components/InsightsCard.tsx`
+- `src/components/ProUpgradeModal.tsx`
+- `src/components/StripeCheckout.tsx`
 
-### 1. Configurar API Key do Google Places
-- Criar uma chave na Google Cloud Console com a Places API habilitada
-- Armazenar como secret no backend (GOOGLE_PLACES_API_KEY)
+Edge functions (e remover do deploy):
+- `supabase/functions/chat/`
+- `supabase/functions/analyze-day/`
+- `supabase/functions/get-insights/`
+- `supabase/functions/check-subscription/`
+- `supabase/functions/create-checkout/`
+- `supabase/functions/customer-portal/`
 
-### 2. Criar função backend `search-clinics`
-- Recebe latitude, longitude e raio de busca
-- Consulta Google Places API (Text Search ou Nearby Search) por termos como "proctologista", "proctologia"
-- Retorna nome, endereco, telefone, avaliacao, horario de funcionamento e coordenadas
+Mantidos:
+- `supabase/functions/search-clinics/` (Google Places, chave própria)
+- `supabase/functions/get-gamification/` (sem IA)
 
-### 3. Nova página `/clinics`
-- Solicita permissão de geolocalização
-- Exibe os resultados em cards organizados por distância
-- Cada card mostra: nome, endereço, avaliação (estrelas), telefone e botão para abrir no Google Maps
-- Filtro de raio de busca (5km, 10km, 25km)
-- Estado de loading com skeletons
-- Fallback caso o usuário negue a localização (campo para digitar CEP/cidade)
+## Arquivos a editar
 
-### 4. Navegação
-- Adicionar link na sidebar/menu do dashboard
-- Rota protegida como as demais
+- `src/pages/Dashboard.tsx`: remover imports e estados de IA (`analysisText`, `analysisLoading`, `analysisType`, modais de análise/insights/upgrade), botões "Analisar dia/mês", `<InsightsCard>`, `<ChatWidget>`, `<ProUpgradeModal>`, item "Seja Pro" / Crown do header e menu mobile, e consultas a `analysis_usage`.
+- `src/pages/Profile.tsx`: remover importações Stripe, seção de assinatura (status, "Seja Pro", gerenciar assinatura), `checkSubscription`, `customer-portal`, e o componente `<StripeCheckout>`. Manter dados pessoais, logout, etc.
+- Limpar imports não usados (`Bot`, `Crown`, `Lightbulb`, `Lock`, `ReactMarkdown` se órfão, etc.).
 
-## Detalhes Técnicos
+## Banco de dados
 
-### Função backend (`supabase/functions/search-clinics/index.ts`)
-- Usa `GOOGLE_PLACES_API_KEY` do ambiente
-- Endpoint: `https://maps.googleapis.com/maps/api/place/textsearch/json`
-- Query: `proctologista` com `location` e `radius`
-- Sem limites de uso para o usuário (não consome créditos internos)
+Migration para remover tabelas que ficam órfãs:
+- `DROP TABLE` em `analysis_usage` e `chat_usage`.
+- Manter `profiles` (a coluna `plan` fica, ignorada — sem risco de quebrar nada agora; podemos remover depois se quiser).
 
-### Página (`src/pages/Clinics.tsx`)
-- `navigator.geolocation.getCurrentPosition()` para obter coordenadas
-- Chama a edge function via `supabase.functions.invoke("search-clinics")`
-- Exibe resultados em grid responsivo de cards
+## Segredos
 
-### Custos
-- Google Places API tem camada gratuita generosa (sem custo para volume baixo)
-- Nenhum dado precisa ser armazenado no banco
+Não removo automaticamente, mas o `LOVABLE_API_KEY` e `STRIPE_SECRET_KEY` ficarão sem uso. Posso listá-los para você apagar manualmente em Project Settings → Secrets se quiser.
 
-## Pré-requisito
-- Criar uma chave de API no Google Cloud Console com a Places API (New) habilitada
-- A chave será armazenada de forma segura como secret no backend
+## GitHub
 
+O projeto já está conectado, então todas as mudanças (deletes incluídos) sincronizam automaticamente para o repositório após a implementação. Nada a fazer manualmente.
+
+## Validação
+
+- Build sem erros e sem imports órfãos
+- Dashboard carrega sem chat flutuante, sem botões de análise, sem card de insights, sem botão Pro
+- Perfil carrega sem seção de assinatura
+- Localizador de consultórios continua funcionando

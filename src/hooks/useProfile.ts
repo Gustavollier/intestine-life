@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileData {
   name: string;
-  plan: string;
 }
 
 // Module-level cache
@@ -31,12 +30,12 @@ export function useProfile() {
 
     const { data } = await supabase
       .from("profiles")
-      .select("name, plan")
+      .select("name")
       .eq("user_id", user.id)
       .maybeSingle();
 
     if (data) {
-      const result: ProfileData = { name: data.name || "", plan: data.plan || "free" };
+      const result: ProfileData = { name: data.name || "" };
       cachedProfile = result;
       cacheTimestamp = Date.now();
       setProfile(result);
@@ -56,13 +55,6 @@ export function useProfile() {
     }
   }, []);
 
-  const updateCachedPlan = useCallback((plan: string) => {
-    if (cachedProfile) {
-      cachedProfile = { ...cachedProfile, plan };
-      setProfile(cachedProfile);
-    }
-  }, []);
-
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
@@ -73,6 +65,5 @@ export function useProfile() {
     fetchProfile,
     invalidateCache,
     updateCachedName,
-    updateCachedPlan,
   };
 }

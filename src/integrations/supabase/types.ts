@@ -14,54 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      analysis_usage: {
-        Row: {
-          analysis_type: string
-          created_at: string
-          id: string
-          reference_date: string
-          user_id: string
-        }
-        Insert: {
-          analysis_type: string
-          created_at?: string
-          id?: string
-          reference_date: string
-          user_id: string
-        }
-        Update: {
-          analysis_type?: string
-          created_at?: string
-          id?: string
-          reference_date?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      chat_usage: {
-        Row: {
-          created_at: string
-          day: string
-          id: string
-          message_count: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          day?: string
-          id?: string
-          message_count?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          day?: string
-          id?: string
-          message_count?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       evacuations: {
         Row: {
           bristol_scale: number | null
@@ -160,7 +112,6 @@ export type Database = {
           id: string
           name: string
           phone_number: string | null
-          plan: string
           updated_at: string
           user_id: string
         }
@@ -171,7 +122,6 @@ export type Database = {
           id?: string
           name: string
           phone_number?: string | null
-          plan?: string
           updated_at?: string
           user_id: string
         }
@@ -182,7 +132,6 @@ export type Database = {
           id?: string
           name?: string
           phone_number?: string | null
-          plan?: string
           updated_at?: string
           user_id?: string
         }
