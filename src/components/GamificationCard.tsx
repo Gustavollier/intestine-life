@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Flame, Trophy, Star, Droplets, UtensilsCrossed, ClipboardList, CheckCircle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { registerCacheClearer } from "@/lib/cacheRegistry";
 
 interface Badge {
   id: string;
