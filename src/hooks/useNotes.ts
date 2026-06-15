@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { registerCacheClearer } from "@/lib/cacheRegistry";
 
 export type Difficulty = "facil" | "normal" | "dificil";
 
