@@ -1,65 +1,32 @@
+# Sincronizar Projeto com GitHub
 
-# Remoção de IA e plano Pro do Intestine Life
+## Objetivo
+Exportar o código completo do Intestine Life para um repositório GitHub e habilitar sincronização bidirecional.
 
-Mantém só o que continua funcionando sem assinatura do Lovable: registros de evacuações, alimentação, hidratação, gamificação, escala de Bristol, guia digestivo, perfil, autenticação e o localizador de consultórios (usa Google Places com chave própria do usuário, não Lovable AI).
+## Tipo de integração
+Usar o **Git sync** do Lovable (não o connector da API do GitHub). Isso cria um repositório no GitHub com todo o código do projeto e mantém alterações sincronizadas nos dois sentidos.
 
-## O que será removido
+## Passos
 
-### Funcionalidades de IA (Lovable AI)
-- Chatbot "Dr. Intestine" — botão flutuante e janela de chat
-- Análise do dia e do mês pelo Dr. Intestine (botões no calendário e no resumo do mês)
-- Card de "Insights Inteligentes" (correlações automáticas)
+1. **Abrir o menu de conexão**
+   - No editor do Lovable, clicar no botão **Plus (+)** no canto inferior esquerdo do chat.
+   - Selecionar **GitHub → Connect project**.
 
-### Plano Pro / Stripe
-- Modal de upgrade (`ProUpgradeModal`)
-- Tela de checkout embutida (`StripeCheckout`)
-- Botões "Seja Pro", "Gerenciar assinatura", badge Crown/Pro no header e menu
-- Verificação de assinatura e portal do cliente na tela de Perfil
-- Limites diários (não fazem mais sentido sem IA)
+2. **Autorizar o Lovable GitHub App**
+   - Na tela de autorização do GitHub, permitir que o app da Lovable acesse a conta/organização desejada.
 
-## Arquivos a deletar
+3. **Escolher conta/organização**
+   - Selecionar a conta pessoal ou organização onde o repositório será criado.
 
-Frontend:
-- `src/components/ChatWidget.tsx`
-- `src/components/InsightsCard.tsx`
-- `src/components/ProUpgradeModal.tsx`
-- `src/components/StripeCheckout.tsx`
+4. **Criar o repositório**
+   - Clicar em **Create Repository** no Lovable.
+   - O repositório será criado já com o código atual do projeto.
 
-Edge functions (e remover do deploy):
-- `supabase/functions/chat/`
-- `supabase/functions/analyze-day/`
-- `supabase/functions/get-insights/`
-- `supabase/functions/check-subscription/`
-- `supabase/functions/create-checkout/`
-- `supabase/functions/customer-portal/`
+5. **Confirmar sincronização**
+   - Verificar no GitHub se o repositório foi criado e se os arquivos estão lá.
+   - A partir daí, alterações no Lovable são enviadas automaticamente para o GitHub e vice-versa.
 
-Mantidos:
-- `supabase/functions/search-clinics/` (Google Places, chave própria)
-- `supabase/functions/get-gamification/` (sem IA)
-
-## Arquivos a editar
-
-- `src/pages/Dashboard.tsx`: remover imports e estados de IA (`analysisText`, `analysisLoading`, `analysisType`, modais de análise/insights/upgrade), botões "Analisar dia/mês", `<InsightsCard>`, `<ChatWidget>`, `<ProUpgradeModal>`, item "Seja Pro" / Crown do header e menu mobile, e consultas a `analysis_usage`.
-- `src/pages/Profile.tsx`: remover importações Stripe, seção de assinatura (status, "Seja Pro", gerenciar assinatura), `checkSubscription`, `customer-portal`, e o componente `<StripeCheckout>`. Manter dados pessoais, logout, etc.
-- Limpar imports não usados (`Bot`, `Crown`, `Lightbulb`, `Lock`, `ReactMarkdown` se órfão, etc.).
-
-## Banco de dados
-
-Migration para remover tabelas que ficam órfãs:
-- `DROP TABLE` em `analysis_usage` e `chat_usage`.
-- Manter `profiles` (a coluna `plan` fica, ignorada — sem risco de quebrar nada agora; podemos remover depois se quiser).
-
-## Segredos
-
-Não removo automaticamente, mas o `LOVABLE_API_KEY` e `STRIPE_SECRET_KEY` ficarão sem uso. Posso listá-los para você apagar manualmente em Project Settings → Secrets se quiser.
-
-## GitHub
-
-O projeto já está conectado, então todas as mudanças (deletes incluídos) sincronizam automaticamente para o repositório após a implementação. Nada a fazer manualmente.
-
-## Validação
-
-- Build sem erros e sem imports órfãos
-- Dashboard carrega sem chat flutuante, sem botões de análise, sem card de insights, sem botão Pro
-- Perfil carrega sem seção de assinatura
-- Localizador de consultórios continua funcionando
+## Observações
+- Não é possível importar um repositório GitHub existente diretamente para o Lovable. A conexão cria um repositório novo.
+- Dados do banco não são exportados com o código; eles precisam ser exportados separadamente em Cloud → Advanced settings → Export data, se necessário.
+- Caso prefira não conectar, o código pode ser baixado manualmente via Code Editor → Download codebase (plano pago) ou pelo repositório após a conexão.
